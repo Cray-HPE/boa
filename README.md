@@ -1,0 +1,57 @@
+# Cray Boot Orchestration Service
+
+This is the Cray Boot Orchestration Service (BOS).
+It provides a service that orchestrates the booting, rebooting, and
+shutdown of compute nodes.
+
+## Architecture
+
+The architecture for BOS is described in Confluence at
+https://connect.us.cray.com/confluence/pages/viewpage.action?pageId=133562640.
+
+## Requirements
+
+## Build the Docker image
+docker build -t boa .
+
+## Build a debug version of the Docker image that has rpdb and busybox in it
+docker build -t boa --target debug .
+
+## Debugging hints
+Building a debug image is easy enough to do. Use rpdb to debug issues. It 
+provides good visibility into otherwise inscrutable problems.
+
+Creating a BOA Docker image tagged with your user ID is an easy way to put your
+content on the system and later remove it without worrying about overwriting
+the latest BOA Docker image.
+The normal image is named cray/cray-boa. Simply name yours <userid>/cray-boa.
+Then, you can alter the configmap boa-config where the image is identified.
+Change the 'cray' below to your <userid>.
+data:
+  boa_image: bis.local:5000/cray/cray-boa:latest
+As a final step, locate and delete the BOS pod. This forces it to restart
+and pick up the new configmap with the new image.
+```
+kubectl -n services get pods | grep bos
+kubectl -n services delete pod <bos-pod-id>
+
+To clean up, remember to revert your changes in the boa-config map and 
+restart the BOS pod.
+
+You can cause node boots to time out faster by adding the following 
+environment variables to the configmap boa-job-template. These variables
+do not appear in the configmap by default. Their default values are shown
+below.
+env:
+  - name: "NODE_STATE_CHECK_NUMBER_OF_RETRIES"
+    value: "120"
+  - name: "NODE_STATE_CHECK_SLEEP_INTERVAL"
+    value: "5"
+
+NODE_STATE_CHECK_NUMBER_OF_RETRIES -- BOA will check on the expected state of nodes this many times before
+                                      giving up. You can crank this down to a very low number to make 
+                                      BOA time-out quickly.
+NODE_STATE_CHECK_SLEEP_INTERVAL -- This is how long BOA will sleep between checks. You can crank this down to a very low number to make 
+                                      BOA time-out quickly.
+
+Note: Changing NODE_STATE_CHECK_SLEEP_INTERVAL will make the process happen more quickly than NODE_STATE_CHECK_SLEEP_INTERVAL.
