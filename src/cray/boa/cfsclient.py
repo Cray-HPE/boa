@@ -1,4 +1,4 @@
-# Copyright 2019-2020 Hewlett Packard Enterprise Development LP
+# Copyright 2019-2021 Hewlett Packard Enterprise Development LP
 
 from collections import defaultdict
 from requests.exceptions import HTTPError
@@ -290,20 +290,38 @@ def get_commit_id(repo_url, branch, cfs_client=None, ca_path="/etc/cray/ca/certi
       subprocess.CalledProcessError -- for errors encountered calling git
     """
     if not repo_url:
+        if not cfs_client:
+            cfs_client = CfsClient()
         try:
             repo_url = cfs_client.get_default_clone_url()
         except KeyError as e:
             msg = 'defaultCloneUrl has not been initialized'
             raise Exception(msg) from e
-    if not cfs_client:
-        cfs_client = CfsClient()
     repo_name = repo_url.split('/')[-1].split('.')[0]
+
+    split_url = repo_url.split('/')
+    username = os.environ['VCS_USERNAME']
+    password = os.environ['VCS_PASSWORD']
+    creds_url = ''.join([split_url[0], '//', username, ':', password, '@', split_url[2]])
+    creds_file_name = '~/.git-credentials'
+    with open(creds_file_name, 'w') as creds_file:
+        creds_file.write(creds_url)
+    credentials_command = 'git config --global credential.helper store'.split()
+
     clone_command = 'git clone {}'.format(repo_url).split()
     clone_env = os.environ.copy()
     clone_env['GIT_SSL_CAINFO'] = ca_path
     checkout_command = 'git checkout {}'.format(branch).split()
     parse_command = 'git rev-parse HEAD'.split()
     with tempfile.TemporaryDirectory() as tmpdirname:
+        process = subprocess.Popen(credentials_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                   cwd=tmpdirname, env=clone_env)
+        out, _ = process.communicate()
+        if process.returncode:
+            LOGGER.error(out)
+            raise subprocess.CalledProcessError(output=out,
+                                                cmd=credentials_command,
+                                                returncode=process.returncode)
         process = subprocess.Popen(clone_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                    cwd=tmpdirname, env=clone_env)
         out, _ = process.communicate()
