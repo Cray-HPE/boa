@@ -1,7 +1,7 @@
 # Dockerfile for Boot Orchestration Agent
 # Copyright 2019-2021 Hewlett Packard Enterprise Development LP
 
-FROM dtr.dev.cray.com/baseos/alpine:3.12.0 as base
+FROM arti.dev.cray.com/baseos-docker-master-local/alpine:3.12.4 as base
 WORKDIR /app
 ADD constraints.txt requirements.txt /app/
 RUN apk add --no-cache linux-headers gcc g++ python3-dev py3-pip musl-dev libffi-dev openssl-dev git && \
@@ -9,7 +9,7 @@ RUN apk add --no-cache linux-headers gcc g++ python3-dev py3-pip musl-dev libffi
     pip3 install --no-cache-dir -r requirements.txt
 COPY src/ /app/lib/
 
-FROM base as install 
+FROM base as install
 COPY setup.py .version /app/lib/
 RUN cd /app/lib && pip3 install --no-cache-dir . && \
     rm -rf /app/*
