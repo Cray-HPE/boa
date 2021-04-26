@@ -94,26 +94,33 @@ class CfsClient(object):
         return response.json()
 
     @call_logger
-    def create_configuration(self, commit, repo_url=None, playbook=None):
+    def create_configuration(self, commit=None, branch=None, repo_url=None, playbook=None):
         if not repo_url:
             repo_url = self.get_default_clone_url()
         if not playbook:
             playbook = self.get_default_playbook()
 
+        if not (commit or branch):
+            raise Exception('For configuration either commit or branch must be set.')
+
         configurations = self.get_configurations()
         for config in configurations:
             if config.get('name').startswith('boa') and len(config.get('layers', [])) == 1:
                 layer = config['layers'][0]
-                if (layer.get('commit') == commit and
-                        layer.get('playbook') == playbook and
-                        layer.get('cloneUrl') == repo_url):
+                if (layer.get('playbook') == playbook and
+                        layer.get('cloneUrl') == repo_url and
+                        (not commit or layer.get('commit') == commit) and
+                        (not branch or layer.get('branch') == branch)):
                     return config.get('name')
 
         layer = {
-            'commit': commit,
             'cloneUrl': repo_url,
             'playbook': playbook
         }
+        if commit:
+            layer['commit'] = commit
+        if branch:
+            layer['branch'] = branch
         data = {
             'layers': [layer],
         }
@@ -272,77 +279,3 @@ def wait_for_configuration(boot_set_agent, maximum_duration=1800, check_interval
     else:
         raise CFSTimeout("%s nodes failed to configure with CFS within the specified time."
                          % (nodes_count - successful_components_count))
-
-
-def get_commit_id(repo_url, branch, cfs_client=None, ca_path="/etc/cray/ca/certificate_authority.crt"):
-    """
-    Given a branch and git url, returns the commit id at the top of that branch
-
-    Args:
-      repo_url: The cloneUrl to pass to the CFS session
-      branch: The branch to pass to the CFS session
-      cfs_client: A client for the CFS API; creates one as necessary.
-
-    Returns:
-      commit: A commit id for the given branch
-
-    Raises:
-      subprocess.CalledProcessError -- for errors encountered calling git
-    """
-    if not repo_url:
-        if not cfs_client:
-            cfs_client = CfsClient()
-        try:
-            repo_url = cfs_client.get_default_clone_url()
-        except KeyError as e:
-            msg = 'defaultCloneUrl has not been initialized'
-            raise Exception(msg) from e
-    repo_name = repo_url.split('/')[-1].split('.')[0]
-
-    split_url = repo_url.split('/')
-    username = os.environ['VCS_USERNAME']
-    password = os.environ['VCS_PASSWORD']
-    creds_url = ''.join([split_url[0], '//', username, ':', password, '@', split_url[2]])
-    creds_file_name = '~/.git-credentials'
-    with open(creds_file_name, 'w') as creds_file:
-        creds_file.write(creds_url)
-    credentials_command = 'git config --global credential.helper store'.split()
-
-    clone_command = 'git clone {}'.format(repo_url).split()
-    clone_env = os.environ.copy()
-    clone_env['GIT_SSL_CAINFO'] = ca_path
-    checkout_command = 'git checkout {}'.format(branch).split()
-    parse_command = 'git rev-parse HEAD'.split()
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        process = subprocess.Popen(credentials_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                   cwd=tmpdirname, env=clone_env)
-        out, _ = process.communicate()
-        if process.returncode:
-            LOGGER.error(out)
-            raise subprocess.CalledProcessError(output=out,
-                                                cmd=credentials_command,
-                                                returncode=process.returncode)
-        process = subprocess.Popen(clone_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                   cwd=tmpdirname, env=clone_env)
-        out, _ = process.communicate()
-        if process.returncode:
-            LOGGER.error(out)
-            raise subprocess.CalledProcessError(output=out,
-                                                cmd=clone_command,
-                                                returncode=process.returncode)
-        process = subprocess.Popen(checkout_command,
-                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                   cwd="%s/%s" % (tmpdirname, repo_name))
-        out, _ = process.communicate()
-        if process.returncode:
-            LOGGER.error(out)
-            raise subprocess.CalledProcessError(process.returncode, cmd=checkout_command, output=out)
-        process = subprocess.Popen(parse_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   cwd="%s/%s" % (tmpdirname, repo_name))
-        out, error = process.communicate()
-        if process.returncode:
-            raise subprocess.CalledProcessError(process.returncode, cmd=parse_command, output=error)
-        commit = out.decode("utf-8").strip()
-        LOGGER.info('Translated git branch %s to commit %s', branch, commit)
-        return commit
-
