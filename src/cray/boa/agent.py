@@ -12,7 +12,7 @@ from .bosclient import SessionStatus, BootSetStatus, now_string
 from .bosclient import SERVICE_ENDPOINT as BOS_SERVICE_ENDPOINT
 from cray.boa.connection import requests_retry_session
 from .capmcclient import graceful_shutdown, power, status
-from .cfsclient import CfsClient, wait_for_configuration, get_commit_id
+from .cfsclient import CfsClient, wait_for_configuration
 from .bssclient import set_bss_urls
 from .logutil import call_logger
 from .smd.smdclient import filter_split
@@ -76,7 +76,6 @@ class BootSetAgent(object):
         self._boot_set_status = None
         self._cfs_configuration = None
         self._cfs_client = None
-        self._cfs_commit = None
         self._preflight_check = None
         self._inventory = None
         self.failed_nodes = set()
@@ -176,7 +175,10 @@ class BootSetAgent(object):
             return self._cfs_configuration
         if 'configuration' in self._cfs_data:
             return self._cfs_data['configuration']
-        self._cfs_configuration = self.cfs_client.create_configuration(self.cfs_commit, self.cfs_clone_url, self.cfs_playbook)
+        self._cfs_configuration = self.cfs_client.create_configuration(commit=self.cfs_commit,
+                                                                       branch=self.cfs_branch,
+                                                                       repo_url=self.cfs_clone_url,
+                                                                       playbook=self.cfs_playbook)
         return self._cfs_configuration
 
     @property
@@ -189,8 +191,7 @@ class BootSetAgent(object):
     @property
     def cfs_branch(self):
         """
-        cfs_branch (str): The branch of CFS to use; this is translated to a
-        commit ID for cfs_commit.
+        cfs_branch (str): The VCS branch to use;
         """
         return self._cfs_data.get('branch', None)
 
@@ -201,17 +202,9 @@ class BootSetAgent(object):
     @property
     def cfs_commit(self):
         """
-        The CFS Commit value is either set explicitly  or is implied because a
-        branch name was provided. If self._cfs_commit is not set and a branch
-        is provided, check out the branch in a temporary directory, examine the
-        contents, and cache the actual commit value.
+        cfs_commit (str): The VCS commit id to use;
         """
-        if self._cfs_commit:
-            return self._cfs_commit
-        elif self.cfs_branch:
-            self._cfs_commit = get_commit_id(self.cfs_clone_url, self.cfs_branch, self.cfs_client)
-            return self._cfs_commit
-        return None
+        return self._cfs_data.get('commit', None)
 
     @property
     def cfs_enabled(self):

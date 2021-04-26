@@ -1,4 +1,4 @@
-# Copyright 2020 Hewlett Packard Enterprise Development LP
+# Copyright 2020-2021 Hewlett Packard Enterprise Development LP
 
 '''
 Created on Sep 8, 2020
@@ -82,13 +82,6 @@ class TestAgent(unittest.TestCase):
         self.assertEqual(agent.rootfs_provider_passthrough, randy_agent.rootfs_provider_passthrough)
         self.assertTrue('%r' %(agent), "This is callable and resolves to %r" %(agent))
 
-    @patch("cray.boa.agent.get_commit_id", MagicMock(return_value="123456789"))
-    def test_commit_id(self):
-        agent = BootSetAgent("session_%s"%(self.id), "template_%s" %(self.id),
-                     boot_set_name="Computes", operation="reboot", file_path=self.file_path)
-        self.assertEqual(agent.cfs_commit, "123456789")
-
-    @patch("cray.boa.agent.get_commit_id", MagicMock(return_value="123456789"))
     @patch("cray.boa.agent.CfsClient.create_configuration", MagicMock(return_value='12345'))
     def test_cfs_enabled(self):
         agent = BootSetAgent("session_%s"%(self.id), "template_%s" %(self.id),
