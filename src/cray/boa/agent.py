@@ -528,7 +528,7 @@ class BootSetAgent(object):
                     # calling function.
                     if queue:
                         queue.put(sys.exc_info())
-                    LOGGER.error(traceback.format_exc(exception, chain=False))
+                    LOGGER.error(traceback.format_exc())
 
                     # Log failed nodes, so an admin can re-run them.
                     failed_node_error()
