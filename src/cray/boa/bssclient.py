@@ -25,7 +25,6 @@ import json
 
 from . import PROTOCOL
 from .logutil import call_logger
-from .rootfs.factory import ProviderFactory
 from .connection import requests_retry_session
 
 LOGGER = logging.getLogger(__name__)
@@ -61,8 +60,7 @@ def set_bss_urls(agent, node_set, kernel_params, boot_artifacts, session=None):
                                          Hardware State Manager
     '''
     session = session or requests_retry_session()
-    params = assemble_kernel_boot_parameters(agent, kernel_params)
-    LOGGER.info("Params: {}".format(params))
+    LOGGER.info("Params: {}".format(kernel_params))
     url = "%s/bootparameters" % (ENDPOINT)
 
     # Figure out which nodes already exist in BSS and which do not
@@ -96,7 +94,7 @@ def set_bss_urls(agent, node_set, kernel_params, boot_artifacts, session=None):
 
         # Assignment payload
         payload = {"hosts": list(node_set1),
-                   "params": params,
+                   "params": kernel_params,
                    "kernel": boot_artifacts['kernel'],
                    "initrd": boot_artifacts['initrd']}
 
@@ -106,35 +104,3 @@ def set_bss_urls(agent, node_set, kernel_params, boot_artifacts, session=None):
         except HTTPError as err:
             LOGGER.error("%s" % err)
             raise
-
-
-@call_logger
-def assemble_kernel_boot_parameters(agent, kernel_parameters):
-    '''
-    Assemble the kernel boot parameters that we want to set in the
-    Boot Script Service (BSS). Specifically, we need to ensure that
-    the 'root' parameter exists and is set correctly.
-
-    Start with kernel boot parameters that the agent was initialized with.
-
-    TODO: CASMCMS-2590: When we have a better definition on this, this
-    function will do something.
-
-    Returns:
-        A string containing the needed kernel boot parameters
-
-    Raises: Nothing.
-    '''
-    pf = ProviderFactory(agent)
-    boot_param_pieces = [kernel_parameters]
-    provider = pf()
-    rootfs_parameters = str(provider)
-    if rootfs_parameters:
-        boot_param_pieces.append(rootfs_parameters)
-    nmd_parameters = provider.nmd_field
-    if nmd_parameters:
-        boot_param_pieces.append(nmd_parameters)
-    # Add the Session ID to the kernel parameters
-    boot_param_pieces.append("bos_session_id={}".format(agent.session_id))
-
-    return ' '.join(boot_param_pieces)

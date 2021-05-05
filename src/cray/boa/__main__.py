@@ -93,8 +93,12 @@ def run():
     except InvalidInput as err:
         raise TemplateException("Template error: %s" % err) from err
 
+    LOGGER.info("**********************************")
     LOGGER.info("Session: %s", session_id)
     LOGGER.info("Operation: %s", operation)
+    LOGGER.info("Session Template: %s", session_template_id)
+    LOGGER.info("Session Limit: %s", session_limit)
+    LOGGER.info("**********************************")
     node_list = set()
     # Look up which Boot Set a node is in. Keys are nodes. Boot Sets are values.
     boot_set_lookup_by_node = {}

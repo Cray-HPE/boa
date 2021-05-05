@@ -38,11 +38,11 @@ from cray.boa import PROTOCOL
 
 import requests
 import logging
-import time
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
 LOGGER = logging.getLogger(__name__)
+
 
 def requests_retry_session(retries=128, backoff_factor=0.01,
                            status_forcelist=(500, 502, 503, 504),
@@ -56,6 +56,7 @@ def requests_retry_session(retries=128, backoff_factor=0.01,
     adapter = HTTPAdapter(max_retries=retry)
     session.mount(pattern, adapter)
     return session
+
 
 def wait_for_istio_proxy():
     """
@@ -78,6 +79,7 @@ class RetryWithLogs(Retry):
     API interactions, as well, gives us a more immediate sense of feedback for overall
     system instability and network congestion.
     """
+
     def __init__(self, *args, **kwargs):
         # Save a copy of upstack callback to the side; this is the context we provide
         # for recursively instantiated instances of the Retry model

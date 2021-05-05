@@ -40,6 +40,7 @@ import threading
 from socket import gethostbyname
 from cray.boa.log import DEFAULT_PORT, ENCODING
 
+
 class LogRecordStreamHandler(socketserver.StreamRequestHandler):
     """
     Handler for a streaming logging request.
@@ -109,11 +110,12 @@ def test_service():
 
     tcpserver = LogRecordSocketReceiver()
     print('About to start TCP server...')
-    log_thread = threading.Thread(target=tcpserver.serve_forever).start()
+    threading.Thread(target=tcpserver.serve_forever).start()
     print("launched")
     time.sleep(20)
     tcpserver.shutdown()
     print("service finished")
+
 
 if __name__ == '__main__':
     test_service()

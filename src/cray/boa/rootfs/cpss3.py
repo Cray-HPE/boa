@@ -50,11 +50,11 @@ class CPSS3Provider(RootfsProvider):
 
     @property
     def provider_field(self):
-        return self.agent.artifact_paths['rootfs']
+        return self.agent.artifact_info['rootfs']
 
     @property
     def provider_field_id(self):
-        return self.agent.artifact_paths['rootfs_etag']
+        return self.agent.artifact_info['rootfs_etag']
 
     @property
     def nmd_field(self):
