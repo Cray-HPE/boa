@@ -208,7 +208,7 @@ def power(nodes, state, force=True, frequency=10, session=None, attempts=10, rea
         time.sleep(frequency)
         nodes = failed_nodes - status(nodes, frequency=frequency, session=session)[state]
 
-        return boot(list(nodes), state, session=session, attempts=attempts)
+        return power(list(nodes), state, session=session, attempts=attempts)
 
 
 @call_logger
