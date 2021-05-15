@@ -25,7 +25,7 @@ Created on February 7th, 2020
 
 @author: jason.sollom
 '''
-  
+
 import logging
 
 from botocore.exceptions import ClientError
@@ -35,14 +35,16 @@ from ..s3client import S3BootArtifacts, S3MissingConfiguration
 
 LOGGER = logging.getLogger(__name__)
 
+
 class S3BootImageMetaData(BootImageMetaData):
+
     def __init__(self, agent):
         """
         Create an S3 BootImage by downloading the manifest
         """
         super().__init__(agent)
         self.boot_artifacts = S3BootArtifacts(self._agent.path, self._agent.etag)
-    
+
     @property
     def metadata(self):
         """
@@ -53,11 +55,11 @@ class S3BootImageMetaData(BootImageMetaData):
           BootImageMetaDataBadRead -- it cannot read the manifest
         """
         try:
-            return self.boot_artifacts.manifest_json 
+            return self.boot_artifacts.manifest_json
         except (ClientError, S3MissingConfiguration) as error:
             LOGGER.error("Unabled to read %s -- Error: %s", self._agent.path, error)
             raise BootImageMetaDataBadRead(error)
-    
+
     @property
     def kernel(self):
         """ 
@@ -116,14 +118,14 @@ class S3BootImageMetaData(BootImageMetaData):
         Get the S3 path to the kernel 
         """
         return self.kernel['link']['path']
-    
+
     @property
     def initrd_path(self):
         """ 
         Get the S3 path to the initrd 
         """
         return self.initrd['link']['path']
-    
+
     @property
     def rootfs_path(self):
         """ 
@@ -141,8 +143,28 @@ class S3BootImageMetaData(BootImageMetaData):
     @property
     def boot_parameters_path(self):
         """ 
-        Get the S3 path to the kernel 
+        Get the S3 path to the boot parameters 
+        This attribute may not exist.
+        
+        Returns:
+          The S3 path to the boot parameters file, if it exists
+          else None
         """
-        return self.boot_parameters['link']['path']
+        bp = self.boot_parameters
+        if bp:
+            return bp['link']['path']
+        return None
 
-    
+    @property
+    def boot_parameters_etag(self):
+        """ 
+        Get the S3 path to the boot parameter's etag
+        This attribute may not exist.
+        Returns:
+          The S3 path to the boot parameters etag file, 
+          if it exists else None
+        """
+        bp = self.boot_parameters
+        if bp:
+            return bp['link']['etag']
+        return None

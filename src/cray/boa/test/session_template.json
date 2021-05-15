@@ -1,0 +1,22 @@
+{
+  "boot_sets": {
+    "compute": {
+      "boot_ordinal": 0,
+      "etag": "d1bd074188956e1a8ed057b5cc36d5cd",
+      "kernel_parameters": "template_param1 template_param2 template_param3",
+      "network": "nmn",
+      "node_roles_groups": [
+        "Compute"
+      ],
+      "path": "s3://boot-images/73ad471b-5cb1-4f55-9a73-c1c145058800/manifest.json",
+      "rootfs_provider": "",
+      "rootfs_provider_passthrough": "",
+      "type": "s3"
+    }
+  },
+  "cfs": {
+    "configuration": "cos-config-2.0.27"
+  },
+  "enable_cfs": true,
+  "name": "cos-sessiontemplate-2.0.27-jasons-no-rootfs"
+}
