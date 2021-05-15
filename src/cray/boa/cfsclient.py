@@ -23,10 +23,8 @@
 from collections import defaultdict
 from requests.exceptions import HTTPError
 import logging
-import subprocess
 import time
 import os
-import tempfile
 import uuid
 
 from cray.boa import NontransientException

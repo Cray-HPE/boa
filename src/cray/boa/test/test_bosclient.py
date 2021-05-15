@@ -27,7 +27,7 @@ Created on Sep 8, 2020
 '''
 
 import pytest
-from requests import Session, Response
+from requests import Session
 from mock import patch, MagicMock
 
 from cray.boa.bosclient import now_string, SessionStatus, BootSetStatus, PhaseStatus
@@ -46,6 +46,7 @@ def boot_set_status(request):
     ss._client = MagicMock(spec=Session)
     return BootSetStatus(ss, *request.param[1:])
 
+
 @pytest.fixture(params=[['session_id', ['Computes'], ['boot'],
                         ['node_one', 'node_two']],
                         ['session_id', ['Computes'], ['configure'],
@@ -58,10 +59,12 @@ def phase_status(request):
     ps = PhaseStatus(bss, request.param[2][0])
     return ps
 
+
 class TestSessionStatus(object):
     """
     Tests aimed at vetting basic SessionStatus routines.
     """
+
     @patch('cray.boa.bosclient.requests_retry_session',
            MagicMock(spec=Session))
     def test_basic_use(self):
@@ -70,7 +73,7 @@ class TestSessionStatus(object):
         examines some of the defined @properties.
         """
         ss = SessionStatus('session_id', boot_sets=['foo', 'bar', 'baz'])
-        assert '%r' %(ss) is not None
+        assert '%r' % (ss) is not None
         assert isinstance(ss.endpoint, str)
         assert ss.endpoint.startswith('http')
         assert ss.update_metadata(start_time=now_string()) is None
@@ -79,8 +82,8 @@ class TestSessionStatus(object):
 class TestBootSetStatus(object):
 
     def test_bss_creation(self, session_status):
-        new_bss = BootSetStatus(session_status, 'bs_one',
-                                ['boot'], ['node_one', 'node_two'])
+        _ = BootSetStatus(session_status, 'bs_one',
+                          ['boot'], ['node_one', 'node_two'])
 
     def test_endpoint(self, boot_set_status):
         assert isinstance(boot_set_status.endpoint, str)
@@ -105,6 +108,7 @@ class TestBootSetStatus(object):
 
 
 class TestPhaseStatus(object):
+
     def test_generate_phase(self):
         """
         Doesn't do much but ensures the static method can be called
@@ -122,4 +126,3 @@ class TestPhaseStatus(object):
     def test_move_nodes(self, phase_status):
         phase_status.move_nodes('in_progress', 'failed', ['node_one'])
 
-        

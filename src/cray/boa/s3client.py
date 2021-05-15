@@ -26,7 +26,7 @@ Created on February 5th, 2020
 '''
 
 import json
-import logging 
+import logging
 import os
 
 import boto3
@@ -36,7 +36,7 @@ from urllib.parse import urlparse
 
 from . import TooManyArtifacts, ArtifactMissing, NontransientException
 
-LOGGER = logging.getLogger(__name__)  
+LOGGER = logging.getLogger(__name__)
 
 
 class S3MissingConfiguration(NontransientException):
@@ -49,17 +49,21 @@ class S3Url(object):
     """
     https://stackoverflow.com/questions/42641315/s3-urls-get-bucket-name-and-path/42641363
     """
+
     def __init__(self, url):
         self._parsed = urlparse(url, allow_fragments=False)
+
     @property
     def bucket(self):
         return self._parsed.netloc
+
     @property
     def key(self):
         if self._parsed.query:
             return self._parsed.path.lstrip('/') + '?' + self._parsed.query
         else:
             return self._parsed.path.lstrip('/')
+
     @property
     def url(self):
         return self._parsed.geturl()
@@ -90,9 +94,9 @@ def s3_client(connection_timeout=60, read_timeout=60):
         raise S3MissingConfiguration(error) from error
 
     s3 = boto3.client('s3',
-                      endpoint_url= s3_protocol + "://" + s3_gateway,
-                      aws_access_key_id= s3_access_key,
-                      aws_secret_access_key= s3_secret_key,
+                      endpoint_url=s3_protocol + "://" + s3_gateway,
+                      aws_access_key_id=s3_access_key,
+                      aws_secret_access_key=s3_secret_key,
                       use_ssl=False,
                       verify=False,
                       config=BotoConfig(
@@ -101,8 +105,11 @@ def s3_client(connection_timeout=60, read_timeout=60):
     return s3
 
 
-class S3BootArtifacts:
-    
+class S3Object:
+    """
+    A generic S3 object. It provides a way to download the object.
+    """
+
     def __init__(self, path, etag=None):
         """
         Args:
@@ -112,7 +119,6 @@ class S3BootArtifacts:
         self.path = path
         self.etag = etag
         self.s3url = S3Url(self.path)
-        self._manifest_json = None
 
     @property
     def object_header(self):
@@ -126,7 +132,7 @@ class S3BootArtifacts:
         Raises:
           ClientError 
         """
-        
+
         try:
             s3 = s3_client()
             s3_obj = s3.head_object(
@@ -137,13 +143,50 @@ class S3BootArtifacts:
             LOGGER.error("s3 object %s was not found.", self.path)
             LOGGER.debug(error)
             raise
-    
+
         if self.etag and self.etag != s3_obj["ETag"].strip('\"'):
             LOGGER.warning("s3 object %s was found, but has an etag '%s' that does "
                                "not match what BOS has '%s'.", self.path, s3_obj["ETag"],
                                self.etag)
         return s3_obj
 
+    @property
+    def object(self):
+        """
+        The S3 object itself.  If the object was not found, log it and return an error.
+        
+        Args:
+          path -- path to the S3 key
+          etag -- Entity tag
+        
+        Return:
+          S3 Object
+          
+        Raises:
+          boto3.execptions.ClientError -- when it cannot read from S3        
+        """
+
+        s3 = s3_client()
+
+        LOGGER.info("++ _get_s3_download_url %s with etag %s.", self.path, self.etag)
+        try:
+            return s3.get_object(Bucket=self.s3url.bucket, Key=self.s3url.key)
+        except ClientError as error:
+            LOGGER.error("Unable to download object {}.".format(self.path))
+            LOGGER.debug(error)
+            raise
+
+
+class S3BootArtifacts(S3Object):
+
+    def __init__(self, path, etag=None):
+        """
+        Args:
+          path (string): S3 path to the S3 object
+          etag (string): S3 entity tag
+          """
+        S3Object.__init__(self, path, etag)
+        self._manifest_json = None
 
     @property
     def manifest_json(self):
@@ -163,14 +206,11 @@ class S3BootArtifacts:
 
         if self._manifest_json:
             return self._manifest_json
-        
-        s3 = s3_client()
-        
-        LOGGER.info("++ _get_s3_download_url %s with etag %s.", self.path, self.etag)
+
         try:
-            s3_manifest_obj = s3.get_object(Bucket=self.s3url.bucket, Key=self.s3url.key)
+            s3_manifest_obj = self.object
             s3_manifest_data = s3_manifest_obj['Body'].read().decode('utf-8')
-        except ClientError as error:
+        except (ClientError, NoSuchKey) as error:
             LOGGER.error("Unable to read manifest file {}.".format(self.path))
             LOGGER.debug(error)
             raise
@@ -178,7 +218,6 @@ class S3BootArtifacts:
         # Cache the manifest.json file
         self._manifest_json = json.loads(s3_manifest_data)
         return self._manifest_json
-    
 
     def _get_artifact(self, artifact_type):
         """
@@ -220,7 +259,6 @@ class S3BootArtifacts:
             raise TooManyArtifacts(msg)
         return artifacts[0]
 
-
     @property
     def initrd(self):
         """
@@ -244,12 +282,17 @@ class S3BootArtifacts:
     @property
     def boot_parameters(self):
         """
-        Get the kernel artifact object out of the manifest.
+        Get the kernel artifact object out of the manifest, if one exists.
     
         Return:
-           boot parameters object
+           boot parameters object if one exists, else None
         """
-        return self._get_artifact('application/vnd.cray.image.parameters.boot')
+        try:
+            bp = self._get_artifact('application/vnd.cray.image.parameters.boot')
+        except ArtifactMissing:
+            bp = None
+
+        return bp
 
     @property
     def rootfs(self):

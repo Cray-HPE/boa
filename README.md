@@ -34,6 +34,7 @@ and pick up the new configmap with the new image.
 ```
 kubectl -n services get pods | grep bos
 kubectl -n services delete pod <bos-pod-id>
+```
 
 To clean up, remember to revert your changes in the boa-config map and 
 restart the BOS pod.

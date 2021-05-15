@@ -43,7 +43,7 @@ from .bssclient import ENDPOINT as BSS_ENDPOINT
 from .capmcclient import ENDPOINT as CAPMC_ENDPOINT
 from .cfsclient import SESSIONS_ENDPOINT as CFS_ENDPOINT
 from .smd import ENDPOINT as SMD_ENDPOINT
-from .s3client import S3BootArtifacts, S3MissingConfiguration
+from .s3client import S3Object, S3MissingConfiguration
 from .connection import requests_retry_session
 
 LOGGER = logging.getLogger(__name__)
@@ -62,7 +62,6 @@ class PreflightCheck(object):
     ACTIONCHECK['configure'] = frozenset(['cfs'])
     ACTIONCHECK['reconfigure'] = ACTIONCHECK['configure']
 
-
     def __init__(self, agent, action, rootfs_provider=None):
         self.agent = agent
         self.session = requests_retry_session()
@@ -76,7 +75,7 @@ class PreflightCheck(object):
         self.checks = set()
         for checktype in self.ACTIONCHECK[self.action]:
             try:
-                self.checks.add(getattr(self, 'check_%s' %(checktype)))
+                self.checks.add(getattr(self, 'check_%s' % (checktype)))
             except AttributeError:
                 LOGGER.warning("Check type '%s' not implemented for action '%s'",
                                checktype, self.action)
@@ -119,7 +118,6 @@ class PreflightCheck(object):
                            self.rootfs_provider)
             return None
 
-
     def check_uri(self, uri):
         try:
             response = self.session.get(uri, verify=VERIFY)
@@ -144,7 +142,7 @@ class PreflightCheck(object):
         Check that the s3 manifest.json file exists.
         """
         try:
-            boot_artifacts = S3BootArtifacts(self.agent.path, self.agent.etag)
+            boot_artifacts = S3Object(self.agent.path, self.agent.etag)
             _ = boot_artifacts.object_header
         except (ClientError, ConnectionClosedError, S3MissingConfiguration) as error:
             raise ServiceNotReady("Service not responsive: %s" % (error)) from error

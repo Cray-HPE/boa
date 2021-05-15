@@ -27,6 +27,7 @@ import sys
 import json
 import traceback
 
+from botocore.exceptions import ClientError
 from . import ServiceNotReady, NontransientException
 from .bosclient import SessionStatus, BootSetStatus, now_string
 from .bosclient import SERVICE_ENDPOINT as BOS_SERVICE_ENDPOINT
@@ -40,7 +41,8 @@ from .smd.smdinventory import SMDInventory
 from .preflight import PreflightCheck
 from .smd.wait_for_nodes import wait_for_nodes, NodesNotReady, ready_drain
 from .bootimagemetadata.factory import BootImageMetaDataFactory
-from .s3client import TooManyArtifacts, ArtifactMissing
+from .s3client import S3Object, TooManyArtifacts, ArtifactMissing
+from .rootfs.factory import ProviderFactory
 
 LOGGER = logging.getLogger(__name__)
 
@@ -295,9 +297,10 @@ class BootSetAgent(object):
         return self.boot_set_data.get('etag', None)
 
     @property
-    def kernel_parameters(self):
+    def session_template_kernel_parameters(self):
         """
-        kernel_parameters (str): The kernel boot parameters
+        session_template_kernel_parameters (str): The kernel boot parameters 
+                                                  from the BOS Session Template
         """
         return self.boot_set_data.get('kernel_parameters', None)
 
@@ -321,7 +324,82 @@ class BootSetAgent(object):
     def __repr__(self):
         return "BOA Agent (Session %s Boot Set: %s)" % (self.session_id, self.boot_set)
 
+    @call_logger
+    def assemble_kernel_boot_parameters(self):
+        '''
+        Assemble the kernel boot parameters that we want to set in the
+        Boot Script Service (BSS). 
+    
+        Append the kernel boot parameters together in this order.
+        
+        1. Parameters from the image itself.
+        2. Parameters from the BOS Session template
+        3. rootfs parameters
+        4. Node Memory Dump (NMD) parameters
+    
+        Warning: We need to ensure that the 'root' parameter exists and is set correctly.
+        If any of the parameter locations are empty, they are simply not used.
+    
+        TODO: CASMCMS-2590: When we have a better definition on this, this
+        function will do something.
+    
+        Returns:
+            A string containing the needed kernel boot parameters
+    
+        Raises: 
+            ClientError -- An S3 client error
+        '''
+
+        boot_param_pieces = []
+
+        # Parameters from the image itself if the parameters exist.
+        if 'boot_parameters' in self.artifact_info and 'boot_parameters_etag' in self.artifact_info:
+            LOGGER.info("++ _get_s3_download_url %s with etag %s.",
+                        self.artifact_info['boot_parameters'],
+                        self.artifact_info['boot_parameters_etag'])
+
+            try:
+                s3_obj = S3Object(self.artifact_info['boot_parameters'],
+                                  self.artifact_info['boot_parameters_etag'])
+                image_kernel_parameters_object = s3_obj.object
+
+                image_kernel_parameters_raw = image_kernel_parameters_object['Body'].read().decode('utf-8')
+                image_kernel_parameters = image_kernel_parameters_raw.split()
+                if image_kernel_parameters:
+                    boot_param_pieces.extend(image_kernel_parameters)
+            except ClientError as error:
+                LOGGER.error("Unable to read file {}. Thus, no kernel boot parameters obtained "
+                             "from image".format(self.artifact_info['boot_parameters']))
+                LOGGER.debug(error)
+                pass
+
+        # Parameters from the BOS Session template if the parameters exist.
+        if self.session_template_kernel_parameters:
+            boot_param_pieces.append(self.session_template_kernel_parameters)
+
+        # Append special parameters for the rootfs and Node Memory Dump
+        pf = ProviderFactory(self)
+        provider = pf()
+        rootfs_parameters = str(provider)
+        if rootfs_parameters:
+            boot_param_pieces.append(rootfs_parameters)
+        nmd_parameters = provider.nmd_field
+        if nmd_parameters:
+            boot_param_pieces.append(nmd_parameters)
+
+        # Add the Session ID to the kernel parameters
+        boot_param_pieces.append("bos_session_id={}".format(self.session_id))
+
+        return ' '.join(boot_param_pieces)
+
     def do_stage(self, status_val, func, *arg, **kwargs):
+        """
+        Args:
+          status_val (str): Name of the stage we are running; for logging purposes only
+          func (func): Name of the function to invoke
+          arg: Array of positional arguments to pass to 'func'
+          kwargs: Dictionary of arguments to pass to 'func'
+        """
         LOGGER.info('%s_start' % (status_val))
         response = func(*arg, **kwargs)
         LOGGER.info('%s_finished' % (status_val))
@@ -408,15 +486,16 @@ class BootSetAgent(object):
         return self._nodes
 
     @property
-    def artifact_paths(self):
+    def artifact_info(self):
         """
         Hunt down the object that contains information about all of the boot artifacts
+        Populate the needed information about paths and etags.
 
         Returns:
           A dictionary containing paths to each of the boot artifacts; The artifact names are the
           keys and the paths are the values
           Example:
-          boot_artifact['kernel'] = 's3://bucket/key'
+          artifact_info['kernel'] = 's3://bucket/key'
         """
         # Use cached value if previously discovered
         if self._boot_artifacts:
@@ -432,6 +511,8 @@ class BootSetAgent(object):
             boot_artifacts['initrd'] = bimd.initrd_path
             boot_artifacts['rootfs'] = bimd.rootfs_path
             boot_artifacts['rootfs_etag'] = bimd.rootfs_etag
+            boot_artifacts['boot_parameters'] = bimd.boot_parameters_path
+            boot_artifacts['boot_parameters_etag'] = bimd.boot_parameters_etag
             self._boot_artifacts = boot_artifacts
             return self._boot_artifacts
         except (ValueError, ArtifactMissing, TooManyArtifacts) as err:
@@ -542,7 +623,7 @@ class BootSetAgent(object):
             for phase_operation in self.phase_operations:
                 try:
                     phase_operation()
-                except Exception as exception:
+                except Exception:
                     # Any exceptions that happened as a result of calling this agent
                     # should be aggregated onto the queue to be later unpacked by the
                     # calling function.
@@ -628,7 +709,9 @@ class BootSetAgent(object):
         self.boot_set_status['boot'].move_nodes(self.nodes, 'not_started', 'in_progress')
         try:
             self.do_stage("boot_set_bss_urls", set_bss_urls, self,
-                          self.nodes, self.kernel_parameters, self.artifact_paths)
+                          self.nodes,
+                          self.assemble_kernel_boot_parameters(),
+                          self.artifact_info)
         except (KeyError, ValueError, requests.exceptions.HTTPError,
                 ArtifactMissing, TooManyArtifacts) as err:
             LOGGER.error("Failed interacting with Boot Script Service (BSS)", exc_info=err)
