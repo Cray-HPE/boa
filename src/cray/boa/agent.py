@@ -353,7 +353,8 @@ class BootSetAgent(object):
         boot_param_pieces = []
 
         # Parameters from the image itself if the parameters exist.
-        if 'boot_parameters' in self.artifact_info and 'boot_parameters_etag' in self.artifact_info:
+        if (self.artifact_info.get('boot_parameters') is not None and
+            self.artifact_info.get('boot_parameters_etag') is not None):
             LOGGER.info("++ _get_s3_download_url %s with etag %s.",
                         self.artifact_info['boot_parameters'],
                         self.artifact_info['boot_parameters_etag'])
