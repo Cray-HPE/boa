@@ -47,18 +47,25 @@ class CapmcTimeoutException(CapmcException):
     """
 
 
-def status(nodes, filtertype='show_all', attempts=20, frequency=10, session=None):
+def status(nodes, filtertype='show_all', timeout, end_time=None, frequency=10, session=None):
     """
-    For a given iterable of nodes, represented by xnames, query capmc for
+    For a given iterable of nodes, represented by xnames, query CAPMC for
     the power status of all nodes. Return a dictionary of nodes that have
     been bucketed by status.
     
     Args:
       nodes (list): Nodes to get status for
       filtertype (str): Type of filter to use when sorting 
-      attempts (int): Number of times to attempt to get status before failing
+      timeout (int): The number of seconds to wait before ceasing to check status
+      endtime (int): Time (in seconds) when we will stop checking on status
       frequency (int): Number of seconds to wait before re-attempting to get status on a failure
     """
+    if end_time is None:
+        end_time = time.time() + timeout
+
+    if time.time() >= end_time:
+        raise CapmcTimeoutException("Timed out waiting to get status from CAPMC.")
+
     endpoint = '%s/get_xname_status' % (ENDPOINT)
     status_bucket = defaultdict(set)
     session = session or requests_retry_session()
@@ -78,15 +85,12 @@ def status(nodes, filtertype='show_all', attempts=20, frequency=10, session=None
         errmsg = "CAPMC returned a non-JSON response: %s %s" % (response.text, jde)
         LOGGER.error(errmsg)
         raise
-    # Check for error state in the returned response
+    # Check for error state in the returned response and retry
     if json_response['e']:
-        attempts -= 1
-        if attempts <= 0:
-            # The query came back with an error
-            raise CapmcException("CAPMC responded with an error response code '%s': %s"
-                                 % (json_response['e'], json_response))
+        LOGGER.error("CAPMC responded with an error response code '%s': %s"
+                     % (json_response['e'], json_response))
         time.sleep(frequency)
-        return status(nodes, filtertype=filtertype, attempts=attempts,
+        return status(nodes, filtertype=filtertype, end_time=end_time,
                       frequency=frequency, session=session)
 
     for key in ('e', 'err_msg'):
@@ -150,14 +154,15 @@ def parse_response(response):
 
 
 @call_logger
-def boot(nodes, frequency=10, session=None, attempts=10, reason="BOA: Staging node for boot..."):
+def boot(nodes, timeout, end_time=None, frequency=10, session=None, reason="BOA: Staging node for boot..."):
     """
     Boots a group of nodes through capmc; returns a set of nodes that were unable to
     be issued a boot request after <attempts> attempts.
 
     Args:
       nodes (list): Nodes to power on
-      attempts (int): Number of times to attempt to power on the nodes before failing
+      timeout (int): The number of seconds to wait before ceasing to check status
+      endtime (int): Time (in seconds) when we will stop checking on status
       frequency (int): Number of seconds to wait before re-attempting to get status on a failure
       session (Requests.session object): A Requests session instance
 
@@ -170,6 +175,14 @@ def boot(nodes, frequency=10, session=None, attempts=10, reason="BOA: Staging no
     if not nodes:
         LOGGER.warning("boot called without nodes; returning without action.")
         return set(), {}
+
+    if end_time is None:
+        end_time = time.time() + timeout
+
+    if time.time() >= end_time:
+        LOGGER.warning("Timed out waiting to boot nodes.")
+        return failed_to_boot, boot_errors
+
     session = session or requests_retry_session()
     prefix, output_format = node_type(nodes)
     boot_endpoint = '%s/%s_on' % (ENDPOINT, prefix)
@@ -178,16 +191,17 @@ def boot(nodes, frequency=10, session=None, attempts=10, reason="BOA: Staging no
     if 'e' not in json_response or json_response['e'] == 0:
         # Happy Path, return empty set
         return failed_to_boot, boot_errors
-    attempts -= 1
-    if not attempts:
-        LOGGER.warning("Last attempt reached; falling back.")
-        return failed_to_boot, boot_errors
-    else:
-        LOGGER.info("Reattempting call to boot.")
-        time.sleep(frequency)
-        nodes_to_boot = failed_to_boot - status(nodes, frequency=frequency, session=session)['on']
 
-        return boot(list(nodes_to_boot), session=session, attempts=attempts)
+    LOGGER.info("Reattempting call to boot.")
+    time.sleep(frequency)
+    nodes_to_boot = failed_to_boot - status(nodes,
+                                            timeout=timeout,
+                                            end_time=end_time,
+                                            filtertype='show_on',
+                                            frequency=frequency,
+                                            session=session)['on']
+
+    return boot(list(nodes_to_boot), session=session, attempts=attempts)
 
 
 @call_logger
@@ -297,7 +311,7 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
         # All nodes not explicitly OFF need to be treated as if they are
         # in a transitional state.
         try:
-            nodes_on = set(nodes) - status(nodes, frequency=frequency, session=session)['off']
+            nodes_on = set(nodes_on) - status(nodes_on, frequency=frequency, session=session)['off']
         except CapmcException as err:
             LOGGER.error("Received a CAPMC error while requesting node status. Ignoring error: %s", err)
     # Fall through to powering nodes off with hardoff
@@ -313,7 +327,7 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
 
     while nodes_on and time.time() < end_time:
         time.sleep(frequency)
-        nodes_on = set(nodes) - status(nodes, frequency=frequency, session=session)['off']
+        nodes_on = set(nodes_on) - status(nodes_on, frequency=frequency, session=session)['off']
     if nodes_on:
         num_nodes = len(nodes_on)
         shutdown_errors = {'Never went to off state': list(nodes_on)}
