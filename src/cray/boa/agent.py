@@ -31,7 +31,7 @@ from . import ServiceNotReady, NontransientException
 from .bosclient import SessionStatus, BootSetStatus, now_string
 from .bosclient import SERVICE_ENDPOINT as BOS_SERVICE_ENDPOINT
 from cray.boa.connection import requests_retry_session
-from .capmcclient import boot, graceful_shutdown
+from .capmcclient import graceful_shutdown, power, status
 from .cfsclient import CfsClient, wait_for_configuration, get_commit_id
 from .bssclient import set_bss_urls
 from .logutil import call_logger
@@ -641,7 +641,14 @@ class BootSetAgent(object):
             LOGGER.error("Failed interacting with Boot Script Service (BSS)", exc_info=err)
             raise ServiceNotReady(err) from err
         self.boot_set_status.update_metadata("boot", start_time=now_string())
-        failed_nodes, errors = boot(self.nodes, reason="Session ID: {}".format(self.session_id))
+
+        # Eliminate nodes that are on.
+        nodes_on = status(self.nodes)['on']
+        if nodes_on:
+            LOGGER.warn("{} nodes were already ON. They will not be booted. ".format(nodes_on))
+        nodes_off = set(self.nodes) - nodes_on
+
+        failed_nodes, errors = power(nodes_off, "on", reason="Session ID: {}".format(self.session_id))
         completed_nodes = set(self.nodes) - failed_nodes
         self.failed_nodes |= failed_nodes
         for new_phase, finished_nodes in zip(['succeeded', 'failed'], [completed_nodes, failed_nodes]):

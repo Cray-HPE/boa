@@ -59,6 +59,9 @@ def status(nodes, filtertype='show_all', timeout, end_time=None, frequency=10, s
       timeout (int): The number of seconds to wait before ceasing to check status
       endtime (int): Time (in seconds) when we will stop checking on status
       frequency (int): Number of seconds to wait before re-attempting to get status on a failure
+      
+    Returns:
+      status_dict (dict): Keys are different states; values are nodes
     """
     if end_time is None:
         end_time = time.time() + timeout
@@ -264,7 +267,7 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
         LOGGER.info("All nodes already in off state.")
         return failed_to_shutdown, shutdown_errors
     LOGGER.info('Issuing graceful powerdown request.')
-    _, _ = shutdown(list(nodes_on), force=False, session=session, reason=reason)
+    _, _ = power(list(nodes_on), "off", force=False, session=session, reason=reason)
 
     end_time = time.time() + grace_window
 
@@ -282,7 +285,7 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
     # Fall through to powering nodes off with hardoff
     if nodes_on:
         LOGGER.info("Issuing hard poweroff request; %s nodes remain in on state.", len(nodes_on))
-        failed_to_shutdown, shutdown_errors = shutdown(list(nodes_on), force=True, session=session)
+        failed_to_shutdown, shutdown_errors = power(list(nodes_on), "off", force=True, session=session, reason=reason)
         if failed_to_shutdown:
             msg = "CAPMC unable to issue shutdown command to %s nodes." % len(failed_to_shutdown)
             LOGGER.error(msg)
