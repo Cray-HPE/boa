@@ -154,7 +154,8 @@ def parse_response(response):
 
 
 @call_logger
-def power(nodes, state, timeout, end_time=None, force=True, frequency=10, session=None, reason="BOA: Powering nodes"):
+def power(nodes, state, timeout, end_time=None, retry=False,
+          force=True, frequency=10, session=None, reason="BOA: Powering nodes"):
     """
     Sets a node to a power state using CAPMC; returns a set of nodes that were unable to achieve
     that state.
@@ -167,6 +168,8 @@ def power(nodes, state, timeout, end_time=None, force=True, frequency=10, sessio
       power (string): Power state: off or on
       timeout (int): The number of seconds to wait before ceasing to check status
       end_time (int): Time (in seconds) when we will stop checking on status
+      retry (bool): If the power operation fails for one or more nodes, should the
+                    operation be retried.
       force (bool): Should the power off be forceful (True) or not forceful (False)
       frequency (int): Number of seconds to wait before re-attempting to get status on a failure
       session (Requests.session object): A Requests session instance
@@ -208,7 +211,7 @@ def power(nodes, state, timeout, end_time=None, force=True, frequency=10, sessio
         raise ValueError("State must be one of {} not {}".format(valid_states, state))
 
     failed_nodes, errors = parse_response(json_response)
-    if 'e' not in json_response or json_response['e'] == 0:
+    if ('e' not in json_response) or (json_response['e'] == 0) or not retry:
         # Happy Path, return empty set
         return failed_nodes, errors
 
