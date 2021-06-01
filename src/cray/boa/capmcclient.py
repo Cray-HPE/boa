@@ -47,7 +47,7 @@ class CapmcTimeoutException(CapmcException):
     """
 
 
-def status(nodes, filtertype='show_all', timeout, frequency=10, session=None):
+def status(nodes, timeout, filtertype='show_all', frequency=10, session=None):
     """
     For a given iterable of nodes, represented by xnames, query CAPMC for
     the power status of all nodes. Return a dictionary of nodes that have
