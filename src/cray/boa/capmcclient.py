@@ -47,7 +47,7 @@ class CapmcTimeoutException(CapmcException):
     """
 
 
-def status(nodes, filtertype='show_all', timeout=None, end_time=None, frequency=10, session=None):
+def status(nodes, filtertype='show_all', timeout, frequency=10, session=None):
     """
     For a given iterable of nodes, represented by xnames, query CAPMC for
     the power status of all nodes. Return a dictionary of nodes that have
@@ -57,46 +57,49 @@ def status(nodes, filtertype='show_all', timeout=None, end_time=None, frequency=
       nodes (list): Nodes to get status for
       filtertype (str): Type of filter to use when sorting 
       timeout (int): The number of seconds to wait before ceasing to check status
-      endtime (int): Time (in seconds) when we will stop checking on status
       frequency (int): Number of seconds to wait before re-attempting to get status on a failure
       
     Returns:
       status_dict (dict): Keys are different states; values are nodes
+    
+    Raises:
+      HTTPError 
+      JSONDecodeError -- error decoding the CAPMC response
     """
-    if end_time is None:
-        if timeout is None:
-            raise ValueError("timeout and end_time cannot both be None.")
-        end_time = time.time() + timeout
-
-    if time.time() >= end_time:
-        raise CapmcTimeoutException("Timed out waiting to get status from CAPMC.")
+    end_time = time.time() + timeout
 
     endpoint = '%s/get_xname_status' % (ENDPOINT)
     status_bucket = defaultdict(set)
     session = session or requests_retry_session()
     body = {'filter': filtertype,
             'xnames': list(nodes)}
-    response = session.post(endpoint, json=body)
-    try:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as err:
-        LOGGER.error("Failed interacting with Cray Advanced Platform Monitoring and Control "
-                     "(CAPMC): %s", err)
-        LOGGER.error(response.text)
-        raise
-    try:
-        json_response = json.loads(response.text)
-    except json.JSONDecodeError as jde:
-        errmsg = "CAPMC returned a non-JSON response: %s %s" % (response.text, jde)
-        LOGGER.error(errmsg)
-        raise
-    # Check for error state in the returned response and retry
-    if json_response['e']:
-        LOGGER.error("CAPMC responded with an error response code '%s': %s"
-                     % (json_response['e'], json_response))
-        time.sleep(frequency)
-        return status(nodes, filtertype=filtertype, end_time=end_time,
-                      frequency=frequency, session=session)
+
+    while time.time() < end_time:
+        response = session.post(endpoint, json=body)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            LOGGER.error("Failed interacting with Cray Advanced Platform Monitoring and Control "
+                         "(CAPMC): %s", err)
+            LOGGER.error(response.text)
+            raise
+        try:
+            json_response = json.loads(response.text)
+        except json.JSONDecodeError as jde:
+            errmsg = "CAPMC returned a non-JSON response: %s %s" % (response.text, jde)
+            LOGGER.error(errmsg)
+            raise
+        # Check for error state in the returned response and retry
+        if json_response['e']:
+            LOGGER.error("CAPMC responded with an error response code '%s': %s"
+                         % (json_response['e'], json_response))
+            time.sleep(frequency)
+            continue
+        else:
+            break
+
+    if time.time() >= end_time:
+        raise CapmcTimeoutException("Timed out waiting to get status from CAPMC.")
 
     for key in ('e', 'err_msg'):
         try:
@@ -159,7 +162,8 @@ def parse_response(response):
 
 
 @call_logger
-def power(nodes, state, timeout=None, end_time=None, status_timeout=120,
+def power(nodes, state, timeout,
+          status_timeout,
           retry=True,
           force=True, frequency=10, session=None, reason="BOA: Powering nodes"):
     """
@@ -173,8 +177,6 @@ def power(nodes, state, timeout=None, end_time=None, status_timeout=120,
       nodes (list): Nodes to power on
       power (string): Power state: off or on
       timeout (int): Number of seconds to wait before we will stop retrying the
-                     power operation
-      end_time (int): Absolute time when we will stop retrying the
                      power operation
       retry (bool): If the power operation fails for one or more nodes, should the
                     operation be retried.
@@ -200,44 +202,36 @@ def power(nodes, state, timeout=None, end_time=None, status_timeout=120,
     if state not in valid_states:
         raise ValueError("State must be one of {} not {}".format(valid_states, state))
 
-    if end_time is None:
-        if timeout is None:
-            raise ValueError("timeout and end_time cannot both be None.")
-        end_time = time.time() + timeout
-
-    if time.time() >= end_time:
-        LOGGER.warning("Timed out waiting to power {} nodes.".format(state))
-        return failed_to_boot, boot_errors
+    end_time = time.time() + timeout
 
     session = session or requests_retry_session()
     prefix, output_format = node_type(nodes)
     power_endpoint = '%s/%s_%s' % (ENDPOINT, prefix, state)
-    if state == "on":
-        json_response = call(power_endpoint, nodes, output_format, reason)
-        filter = "show_on"
-    elif state == "off":
-        json_response = call(power_endpoint, nodes, output_format, reason, force=force)
-        filter = "show_off"
-    else:
-        raise ValueError("State must be one of {} not {}".format(valid_states, state))
 
-    failed_nodes, errors = parse_response(json_response)
-    if ('e' not in json_response) or (json_response['e'] == 0) or not retry:
-        # Happy Path, return empty set
-        return failed_nodes, errors
+    while time.time() < end_time:
+        if state == "on":
+            json_response = call(power_endpoint, nodes, output_format, reason)
+            filter = "show_on"
+        elif state == "off":
+            json_response = call(power_endpoint, nodes, output_format, reason, force=force)
+            filter = "show_off"
+        else:
+            raise ValueError("State must be one of {} not {}".format(valid_states, state))
 
-    LOGGER.info("Reattempting call to power {} nodes.".format(state))
-    time.sleep(frequency)
-    nodes = failed_nodes - status(nodes, filtertype=filter,
-                                  timeout=status_timeout,
-                                  frequency=frequency, session=session)[state]
+        failed_nodes, errors = parse_response(json_response)
+        if ('e' not in json_response) or (json_response['e'] == 0) or not retry:
+            # Happy Path, return empty set or
+            # There were errors but we're not going to retry.
+            return failed_nodes, errors
 
-    return power(list(nodes), state,
-                 end_time=end_time,
-                 retry=retry,
-                 force=force,
-                 status_timeout=status_timeout,
-                 session=session)
+        LOGGER.info("Reattempting call to power {} nodes.".format(state))
+        time.sleep(frequency)
+        nodes = failed_nodes - status(nodes, filtertype=filter,
+                                      timeout=status_timeout,
+                                      frequency=frequency, session=session)[state]
+
+    LOGGER.warning("Timed out waiting to power {} nodes.".format(state))
+    return failed_to_boot, boot_errors
 
 
 @call_logger
@@ -287,7 +281,7 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
 
     end_time = time.time() + grace_window
     _, _ = power(list(nodes_on), "off",
-                 end_time=end_time,
+                 timeout=grace_window,
                  status_timeout=status_timeout,
                  retry=retry,
                  force=False, session=session, reason=reason)
@@ -313,7 +307,7 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
     if nodes_on:
         LOGGER.info("Issuing hard poweroff request; %s nodes remain in on state.", len(nodes_on))
         failed_to_shutdown, shutdown_errors = power(list(nodes_on), "off",
-                                                    end_time=end_time,
+                                                    timeout=hard_window,
                                                     status_timeout=status_timeout,
                                                     retry=retry,
                                                     force=True, session=session, reason=reason)
