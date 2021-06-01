@@ -47,7 +47,7 @@ class CapmcTimeoutException(CapmcException):
     """
 
 
-def status(nodes, filtertype='show_all', timeout, end_time=None, frequency=10, session=None):
+def status(nodes, filtertype='show_all', timeout=None, end_time=None, frequency=10, session=None):
     """
     For a given iterable of nodes, represented by xnames, query CAPMC for
     the power status of all nodes. Return a dictionary of nodes that have
@@ -64,6 +64,8 @@ def status(nodes, filtertype='show_all', timeout, end_time=None, frequency=10, s
       status_dict (dict): Keys are different states; values are nodes
     """
     if end_time is None:
+        if timeout is None:
+            raise ValueError("timeout and end_time cannot both be None.")
         end_time = time.time() + timeout
 
     if time.time() >= end_time:
@@ -157,7 +159,8 @@ def parse_response(response):
 
 
 @call_logger
-def power(nodes, state, timeout, end_time=None, retry=False,
+def power(nodes, state, timeout=None, end_time=None, status_timeout=120,
+          retry=True,
           force=True, frequency=10, session=None, reason="BOA: Powering nodes"):
     """
     Sets a node to a power state using CAPMC; returns a set of nodes that were unable to achieve
@@ -169,10 +172,13 @@ def power(nodes, state, timeout, end_time=None, retry=False,
     Args:
       nodes (list): Nodes to power on
       power (string): Power state: off or on
-      timeout (int): The number of seconds to wait before ceasing to check status
-      end_time (int): Time (in seconds) when we will stop checking on status
+      timeout (int): Number of seconds to wait before we will stop retrying the
+                     power operation
+      end_time (int): Absolute time when we will stop retrying the
+                     power operation
       retry (bool): If the power operation fails for one or more nodes, should the
                     operation be retried.
+      status_timeout (int): The number of seconds to wait before ceasing to check status 
       force (bool): Should the power off be forceful (True) or not forceful (False)
       frequency (int): Number of seconds to wait before re-attempting to get status on a failure
       session (Requests.session object): A Requests session instance
@@ -195,6 +201,8 @@ def power(nodes, state, timeout, end_time=None, retry=False,
         raise ValueError("State must be one of {} not {}".format(valid_states, state))
 
     if end_time is None:
+        if timeout is None:
+            raise ValueError("timeout and end_time cannot both be None.")
         end_time = time.time() + timeout
 
     if time.time() >= end_time:
@@ -221,13 +229,21 @@ def power(nodes, state, timeout, end_time=None, retry=False,
     LOGGER.info("Reattempting call to power {} nodes.".format(state))
     time.sleep(frequency)
     nodes = failed_nodes - status(nodes, filtertype=filter,
+                                  timeout=status_timeout,
                                   frequency=frequency, session=session)[state]
 
-    return power(list(nodes), state, session=session, attempts=attempts)
+    return power(list(nodes), state,
+                 end_time=end_time,
+                 retry=retry,
+                 force=force,
+                 status_timeout=status_timeout,
+                 session=session)
 
 
 @call_logger
 def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait=20,
+                      retry=True,
+                      status_timeout=120,
                       frequency=10, session=None, reason="BOA: Staging nodes for shutdown..."):
     """
     Performs a two stage shutdown operation on the nodes in question with a
@@ -261,15 +277,20 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
         return failed_to_shutdown, shutdown_errors
     session = session or requests_retry_session()
     # We treat any node not specifically in the off state to be on.
-    nodes_on = set(nodes) - status(nodes, frequency=frequency, session=session)['off']
+    nodes_on = set(nodes) - status(nodes, filtertype='show_off',
+                                   timeout=status_timeout, frequency=frequency, session=session)['off']
 
     if not nodes_on:
         LOGGER.info("All nodes already in off state.")
         return failed_to_shutdown, shutdown_errors
     LOGGER.info('Issuing graceful powerdown request.')
-    _, _ = power(list(nodes_on), "off", force=False, session=session, reason=reason)
 
     end_time = time.time() + grace_window
+    _, _ = power(list(nodes_on), "off",
+                 end_time=end_time,
+                 status_timeout=status_timeout,
+                 retry=retry,
+                 force=False, session=session, reason=reason)
 
     # Give the BMC's a chance to power down before initially checking.
     time.sleep(graceful_prewait)
@@ -279,32 +300,45 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
         # All nodes not explicitly OFF need to be treated as if they are
         # in a transitional state.
         try:
-            nodes_on = set(nodes_on) - status(nodes_on, frequency=frequency, session=session)['off']
+            nodes_on = set(nodes_on) - status(nodes_on,
+                                              filtertype='show_off',
+                                              timeout=status_timeout, frequency=frequency, session=session)['off']
         except CapmcException as err:
             LOGGER.error("Received a CAPMC error while requesting node status. Ignoring error: %s", err)
     # Fall through to powering nodes off with hardoff
+
+    # Start count down to timing out the forceful time-out.
+    end_time = time.time() + hard_window
+
     if nodes_on:
         LOGGER.info("Issuing hard poweroff request; %s nodes remain in on state.", len(nodes_on))
-        failed_to_shutdown, shutdown_errors = power(list(nodes_on), "off", force=True, session=session, reason=reason)
+        failed_to_shutdown, shutdown_errors = power(list(nodes_on), "off",
+                                                    end_time=end_time,
+                                                    status_timeout=status_timeout,
+                                                    retry=retry,
+                                                    force=True, session=session, reason=reason)
         if failed_to_shutdown:
             msg = "CAPMC unable to issue shutdown command to %s nodes." % len(failed_to_shutdown)
             LOGGER.error(msg)
-            return failed_to_shutdown, shutdown_errors
 
-    end_time = time.time() + hard_window
+    # Weed out nodes we failed to talk with.
+    nodes_on = nodes_on - failed_to_shutdown
 
     while nodes_on and time.time() < end_time:
         time.sleep(frequency)
-        nodes_on = set(nodes_on) - status(nodes_on, frequency=frequency, session=session)['off']
+        nodes_on = set(nodes_on) - status(nodes_on, timeout=status_timeout,
+                                          filtertype="show_off", frequency=frequency, session=session)['off']
     if nodes_on:
         num_nodes = len(nodes_on)
-        shutdown_errors = {'Never went to off state': list(nodes_on)}
         msg = "%d node%s did not enter a shutdown state after %s seconds: %s" % (num_nodes,
                                                                                 '' if num_nodes == 1 else 's',
                                                                                 hard_window,
                                                                                 sorted(nodes_on))
 
         LOGGER.error(msg)
+        # Add back in nodes BOA could not communicate with
+        failures = nodes_on | failed_to_shutdown
+        shutdown_errors['Never went to off state'] = list(nodes_on)
         return nodes_on, shutdown_errors
     # Return emptiness because a return is expected
     return set(), dict()

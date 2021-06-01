@@ -648,7 +648,22 @@ class BootSetAgent(object):
             LOGGER.warn("{} nodes were already ON. They will not be booted. ".format(nodes_on))
         nodes_off = set(self.nodes) - nodes_on
 
-        failed_nodes, errors = power(nodes_off, "on", reason="Session ID: {}".format(self.session_id))
+        arg_dict = {'timeout': (os.environ.get('POWER_ON_TIMEOUT'), 600),
+                    'frequency': (os.environ.get('POWER_STATUS_FREQUENCY'), 10),
+                    'retry': (os.environ.get('POWER_OFF_RETRY'), 'True'),
+                    'status_timeout': (os.environ.get('STATUS_TIMEOUT'), 180)}
+        args = {}
+        for key, value in arg_dict.items():
+            environ_val, default_val = value
+            if not environ_val or environ_val.strip() == '':
+                args[key] = default_val
+            else:
+                args[key] = int(environ_val)
+        # Turn a string into a boolean.
+        args['retry'] = (args['retry'].lower() == 'true')
+
+        failed_nodes, errors = power(nodes_off, "on", reason="Session ID: {}".format(self.session_id),
+                                     **args)
         completed_nodes = set(self.nodes) - failed_nodes
         self.failed_nodes |= failed_nodes
         for new_phase, finished_nodes in zip(['succeeded', 'failed'], [completed_nodes, failed_nodes]):
@@ -709,7 +724,9 @@ class BootSetAgent(object):
         arg_dict = {'grace_window': (os.environ.get('GRACEFUL_SHUTDOWN_TIMEOUT'), 300),
                     'hard_window': (os.environ.get('FORCEFUL_SHUTDOWN_TIMEOUT'), 180),
                     'graceful_prewait': (os.environ.get('GRACEFUL_SHUTDOWN_PREWAIT'), 20),
-                    'frequency': (os.environ.get('POWER_STATUS_FREQUENCY'), 10)}
+                    'frequency': (os.environ.get('POWER_STATUS_FREQUENCY'), 10),
+                    'retry': (os.environ.get('POWER_OFF_RETRY'), 'True'),
+                    'status_timeout': (os.environ.get('STATUS_TIMEOUT'), 180)}
         args = {}
         for key, value in arg_dict.items():
             environ_val, default_val = value
@@ -717,6 +734,8 @@ class BootSetAgent(object):
                 args[key] = default_val
             else:
                 args[key] = int(environ_val)
+        # Turn a string into a boolean.
+        args['retry'] = (args['retry'].lower() == 'true')
         failed_nodes, errors = graceful_shutdown(self.nodes,
                                                  reason="Session ID: {}".format(self.session_id),
                                                  **args)
