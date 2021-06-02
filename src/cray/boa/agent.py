@@ -642,12 +642,6 @@ class BootSetAgent(object):
             raise ServiceNotReady(err) from err
         self.boot_set_status.update_metadata("boot", start_time=now_string())
 
-        # Eliminate nodes that are on.
-        nodes_on = status(self.nodes)['on']
-        if nodes_on:
-            LOGGER.warn("{} nodes were already ON. They will not be booted. ".format(nodes_on))
-        nodes_off = set(self.nodes) - nodes_on
-
         arg_dict = {'timeout': (os.environ.get('POWER_ON_TIMEOUT'), 600),
                     'frequency': (os.environ.get('POWER_STATUS_FREQUENCY'), 10),
                     'retry': (os.environ.get('POWER_OFF_RETRY'), 'True'),
@@ -661,6 +655,12 @@ class BootSetAgent(object):
                 args[key] = int(environ_val)
         # Turn a string into a boolean.
         args['retry'] = (args['retry'].lower() == 'true')
+
+        # Eliminate nodes that are on.
+        nodes_on = status(self.nodes, args['status_timeout'])['on']
+        if nodes_on:
+            LOGGER.warn("{} nodes were already ON. They will not be booted. ".format(nodes_on))
+        nodes_off = set(self.nodes) - nodes_on
 
         failed_nodes, errors = power(nodes_off, "on", reason="Session ID: {}".format(self.session_id),
                                      **args)

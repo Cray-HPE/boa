@@ -226,8 +226,9 @@ def power(nodes, state, timeout,
 
         LOGGER.info("Reattempting call to power {} nodes.".format(state))
         time.sleep(frequency)
-        nodes = failed_nodes - status(nodes, filtertype=filter,
+        nodes = failed_nodes - status(nodes,
                                       timeout=status_timeout,
+                                      filtertype=filter,
                                       frequency=frequency, session=session)[state]
 
     LOGGER.warning("Timed out waiting to power {} nodes.".format(state))
@@ -271,8 +272,10 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
         return failed_to_shutdown, shutdown_errors
     session = session or requests_retry_session()
     # We treat any node not specifically in the off state to be on.
-    nodes_on = set(nodes) - status(nodes, filtertype='show_off',
-                                   timeout=status_timeout, frequency=frequency, session=session)['off']
+    nodes_on = set(nodes) - status(nodes,
+                                   timeout=status_timeout,
+                                   filtertype='show_off',
+                                   frequency=frequency, session=session)['off']
 
     if not nodes_on:
         LOGGER.info("All nodes already in off state.")
@@ -295,8 +298,9 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
         # in a transitional state.
         try:
             nodes_on = set(nodes_on) - status(nodes_on,
+                                              timeout=status_timeout,
                                               filtertype='show_off',
-                                              timeout=status_timeout, frequency=frequency, session=session)['off']
+                                              frequency=frequency, session=session)['off']
         except CapmcException as err:
             LOGGER.error("Received a CAPMC error while requesting node status. Ignoring error: %s", err)
     # Fall through to powering nodes off with hardoff
@@ -320,8 +324,10 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
 
     while nodes_on and time.time() < end_time:
         time.sleep(frequency)
-        nodes_on = set(nodes_on) - status(nodes_on, timeout=status_timeout,
-                                          filtertype="show_off", frequency=frequency, session=session)['off']
+        nodes_on = set(nodes_on) - status(nodes_on,
+                                          timeout=status_timeout,
+                                          filtertype="show_off",
+                                          frequency=frequency, session=session)['off']
     if nodes_on:
         num_nodes = len(nodes_on)
         msg = "%d node%s did not enter a shutdown state after %s seconds: %s" % (num_nodes,
