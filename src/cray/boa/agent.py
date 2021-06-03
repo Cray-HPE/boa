@@ -555,7 +555,7 @@ class BootSetAgent(object):
                     # calling function.
                     if queue:
                         queue.put(sys.exc_info())
-                    LOGGER.error(traceback.format_exc(exception, chain=False))
+                    LOGGER.error(traceback.format_exc())
 
                     # Log failed nodes, so an admin can re-run them.
                     failed_node_error()
@@ -622,6 +622,36 @@ class BootSetAgent(object):
         LOGGER.info("Waiting on completion of configuration...")
         wait_for_configuration(self)
 
+    def _handle_environment_variables(self, args_dict):
+        """
+        Massages the environment variables into a usable form.
+        It weeds out empty environment variables and uses the default
+        values instead from the args_dict.
+        
+        Input:
+          args_dict (dict): Key/value where the value is a tuple containing 
+                            the environment variable and a default value.
+        
+        Returns:
+          A dictionary containing lower-cased environment variable keys and 
+          their values. The keys are based on the args_dict input.
+        """
+        args = {}
+        for key, value in args_dict.items():
+            environ_val, default_val = value
+            if not environ_val or environ_val.strip() == '':
+                args[key] = default_val
+            else:
+                if environ_val.isdigit():
+                    args[key] = int(environ_val)
+                else:
+                    args[key] = environ_val
+        # Turn the retry string into a boolean.
+        if 'retry' in args:
+            args['retry'] = (args['retry'].lower() == 'true')
+
+        return args
+
     @call_logger
     def boot(self):
         """
@@ -646,15 +676,7 @@ class BootSetAgent(object):
                     'frequency': (os.environ.get('POWER_STATUS_FREQUENCY'), 10),
                     'retry': (os.environ.get('POWER_OFF_RETRY'), 'True'),
                     'status_timeout': (os.environ.get('STATUS_TIMEOUT'), 180)}
-        args = {}
-        for key, value in arg_dict.items():
-            environ_val, default_val = value
-            if not environ_val or environ_val.strip() == '':
-                args[key] = default_val
-            else:
-                args[key] = int(environ_val)
-        # Turn a string into a boolean.
-        args['retry'] = (args['retry'].lower() == 'true')
+        args = self._handle_environment_variables(arg_dict)
 
         # Eliminate nodes that are on.
         nodes_on = status(self.nodes, args['status_timeout'])['on']
@@ -678,13 +700,8 @@ class BootSetAgent(object):
         # Wait for the nodes in question to boot
         arg_dict = {'sleep_time': (os.getenv("NODE_STATE_CHECK_SLEEP_INTERVAL"), 5),
                     'allowed_retries': (os.getenv("NODE_STATE_CHECK_NUMBER_OF_RETRIES"), 120)}
-        args = {}
-        for key, value in arg_dict.items():
-            environ_val, default_val = value
-            if not environ_val or environ_val.strip() == '':
-                args[key] = default_val
-            else:
-                args[key] = int(environ_val)
+        args = self._handle_environment_variables(arg_dict)
+
         try:
             # Note: wait_for_nodes updates the status of
             wait_for_nodes(boot_set_agent=self,
@@ -727,15 +744,8 @@ class BootSetAgent(object):
                     'frequency': (os.environ.get('POWER_STATUS_FREQUENCY'), 10),
                     'retry': (os.environ.get('POWER_OFF_RETRY'), 'True'),
                     'status_timeout': (os.environ.get('STATUS_TIMEOUT'), 180)}
-        args = {}
-        for key, value in arg_dict.items():
-            environ_val, default_val = value
-            if not environ_val or environ_val.strip() == '':
-                args[key] = default_val
-            else:
-                args[key] = int(environ_val)
-        # Turn a string into a boolean.
-        args['retry'] = (args['retry'].lower() == 'true')
+
+        args = self._handle_environment_variables(arg_dict)
         failed_nodes, errors = graceful_shutdown(self.nodes,
                                                  reason="Session ID: {}".format(self.session_id),
                                                  **args)

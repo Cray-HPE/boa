@@ -226,6 +226,8 @@ def power(nodes, state, timeout,
 
         LOGGER.info("Reattempting call to power {} nodes.".format(state))
         time.sleep(frequency)
+        # TODO: The following line can be removed once CASMHMS-4868 has been fixed.
+        filter = "show_all"
         nodes = failed_nodes - status(nodes,
                                       timeout=status_timeout,
                                       filtertype=filter,
@@ -271,10 +273,14 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
         LOGGER.warning("graceful_shutdown called without nodes; returning without action.")
         return failed_to_shutdown, shutdown_errors
     session = session or requests_retry_session()
+
+    # TODO Once CASMHMS-4868 is resolved, we can change filter to show_off rather than show_all.
+    # filter = 'show_off'
+    filter = 'show_all'
     # We treat any node not specifically in the off state to be on.
     nodes_on = set(nodes) - status(nodes,
                                    timeout=status_timeout,
-                                   filtertype='show_off',
+                                   filtertype=filter,
                                    frequency=frequency, session=session)['off']
 
     if not nodes_on:
@@ -299,7 +305,7 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
         try:
             nodes_on = set(nodes_on) - status(nodes_on,
                                               timeout=status_timeout,
-                                              filtertype='show_off',
+                                              filtertype=filter,
                                               frequency=frequency, session=session)['off']
         except CapmcException as err:
             LOGGER.error("Received a CAPMC error while requesting node status. Ignoring error: %s", err)
@@ -326,7 +332,7 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
         time.sleep(frequency)
         nodes_on = set(nodes_on) - status(nodes_on,
                                           timeout=status_timeout,
-                                          filtertype="show_off",
+                                          filtertype=filter,
                                           frequency=frequency, session=session)['off']
     if nodes_on:
         num_nodes = len(nodes_on)
