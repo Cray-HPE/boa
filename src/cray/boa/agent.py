@@ -31,7 +31,7 @@ from . import ServiceNotReady, NontransientException
 from .bosclient import SessionStatus, BootSetStatus, now_string
 from .bosclient import SERVICE_ENDPOINT as BOS_SERVICE_ENDPOINT
 from cray.boa.connection import requests_retry_session
-from .capmcclient import boot, graceful_shutdown
+from .capmcclient import graceful_shutdown, power, status
 from .cfsclient import CfsClient, wait_for_configuration, get_commit_id
 from .bssclient import set_bss_urls
 from .logutil import call_logger
@@ -555,7 +555,7 @@ class BootSetAgent(object):
                     # calling function.
                     if queue:
                         queue.put(sys.exc_info())
-                    LOGGER.error(traceback.format_exc(exception, chain=False))
+                    LOGGER.error(traceback.format_exc())
 
                     # Log failed nodes, so an admin can re-run them.
                     failed_node_error()
@@ -622,6 +622,36 @@ class BootSetAgent(object):
         LOGGER.info("Waiting on completion of configuration...")
         wait_for_configuration(self)
 
+    def _handle_environment_variables(self, args_dict):
+        """
+        Massages the environment variables into a usable form.
+        It weeds out empty environment variables and uses the default
+        values instead from the args_dict.
+        
+        Input:
+          args_dict (dict): Key/value where the value is a tuple containing 
+                            the environment variable and a default value.
+        
+        Returns:
+          A dictionary containing lower-cased environment variable keys and 
+          their values. The keys are based on the args_dict input.
+        """
+        args = {}
+        for key, value in args_dict.items():
+            environ_val, default_val = value
+            if not environ_val or environ_val.strip() == '':
+                args[key] = default_val
+            else:
+                if environ_val.isdigit():
+                    args[key] = int(environ_val)
+                else:
+                    args[key] = environ_val
+        # Turn the retry string into a boolean.
+        if 'retry' in args:
+            args['retry'] = (args['retry'].lower() == 'true')
+
+        return args
+
     @call_logger
     def boot(self):
         """
@@ -641,28 +671,44 @@ class BootSetAgent(object):
             LOGGER.error("Failed interacting with Boot Script Service (BSS)", exc_info=err)
             raise ServiceNotReady(err) from err
         self.boot_set_status.update_metadata("boot", start_time=now_string())
-        failed_nodes, errors = boot(self.nodes, reason="Session ID: {}".format(self.session_id))
-        completed_nodes = set(self.nodes) - failed_nodes
+
+        errors = {}
+        # Eliminate nodes that are on.
+        status_dict, failed_nodes, errors_stat = status(self.nodes)
         self.failed_nodes |= failed_nodes
-        for new_phase, finished_nodes in zip(['succeeded', 'failed'], [completed_nodes, failed_nodes]):
+        errors.update(errors_stat)
+        nodes_on = status_dict['on']
+        if nodes_on:
+            LOGGER.warn("{} nodes were already ON. They will not be booted. ".format(nodes_on))
+        nodes_off = set(self.nodes) - nodes_on
+
+        if not nodes_off:
+            LOGGER.warn("No nodes to boot.")
+            if errors:
+                self.boot_set_status.update_errors('boot', errors=errors)
+                # There were no nodes to boot, so we are going to mark the Boot Set as
+                # having finished this phase.
+                self.boot_set_status.update_metadata("boot", stop_time=now_string())
+            return
+
+        failed_nodes, errors_pow = power(nodes_off, "on", reason="Session ID: {}".format(self.session_id))
+        self.failed_nodes |= failed_nodes
+        for new_phase, finished_nodes in zip(['succeeded', 'failed'], [self.nodes, failed_nodes]):
             if finished_nodes:
                 self.boot_set_status['boot'].move_nodes(finished_nodes, 'in_progress', new_phase)
+
+        errors.update(errors_pow)
         if errors:
             self.boot_set_status.update_errors('boot', errors=errors)
-            if not self.nodes:
-                # If every node failed to boot, then stop here. Otherwise, the booted nodes get
-                # to soldier on.
-                raise NontransientException("Nodes failed to boot.")
+        if not self.nodes:
+            # If every node failed to boot, then stop here. Otherwise, the booted nodes get
+            # to soldier on.
+            raise NontransientException("Nodes failed to boot.")
         # Wait for the nodes in question to boot
         arg_dict = {'sleep_time': (os.getenv("NODE_STATE_CHECK_SLEEP_INTERVAL"), 5),
                     'allowed_retries': (os.getenv("NODE_STATE_CHECK_NUMBER_OF_RETRIES"), 120)}
-        args = {}
-        for key, value in arg_dict.items():
-            environ_val, default_val = value
-            if not environ_val or environ_val.strip() == '':
-                args[key] = default_val
-            else:
-                args[key] = int(environ_val)
+        args = self._handle_environment_variables(arg_dict)
+
         try:
             # Note: wait_for_nodes updates the status of
             wait_for_nodes(boot_set_agent=self,
@@ -703,13 +749,8 @@ class BootSetAgent(object):
                     'hard_window': (os.environ.get('FORCEFUL_SHUTDOWN_TIMEOUT'), 180),
                     'graceful_prewait': (os.environ.get('GRACEFUL_SHUTDOWN_PREWAIT'), 20),
                     'frequency': (os.environ.get('POWER_STATUS_FREQUENCY'), 10)}
-        args = {}
-        for key, value in arg_dict.items():
-            environ_val, default_val = value
-            if not environ_val or environ_val.strip() == '':
-                args[key] = default_val
-            else:
-                args[key] = int(environ_val)
+
+        args = self._handle_environment_variables(arg_dict)
         failed_nodes, errors = graceful_shutdown(self.nodes,
                                                  reason="Session ID: {}".format(self.session_id),
                                                  **args)
@@ -719,14 +760,14 @@ class BootSetAgent(object):
             if finished_nodes:
                 self.boot_set_status['shutdown'].move_nodes(finished_nodes, 'in_progress', new_category)
         if errors:
-            self.boot_set_status['shutdown'].update_errors('shutdown',
-                                                           errors=errors)
+            self.boot_set_status.update_errors('shutdown',
+                                               errors=errors)
             LOGGER.error("Errors occurred while shutting down. Check BOS Status. These nodes failed to "
                          "shutdown: {}".format(failed_nodes))
-            if not self.nodes:
-                # If every node failed to power down, then stop here. Otherwise, the surviving nodes get
-                # to soldier on.
-                raise NontransientException("Nodes failed to shutdown")
+        if not self.nodes:
+            # If every node failed to power down, then stop here. Otherwise, the surviving nodes get
+            # to soldier on.
+            raise NontransientException("Nodes failed to shutdown")
         if self.operation == 'reboot':
             ready_drain(self.nodes)
 
