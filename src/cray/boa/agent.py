@@ -614,7 +614,7 @@ class BootSetAgent(object):
             LOGGER.error("These nodes failed to {}. {}".format(self.operation, self.failed_nodes))
             LOGGER.error("You can attempt to {0} these nodes by issuing the command:\n"
                          "cray bos v1 session create --template-uuid {1} --operation {0} --limit {2}".format(
-                         self.operation, self.session_template_id, self.failed_nodes))
+                         self.operation, self.session_template_id, ','.join(self.failed_nodes)))
 
         with self.boot_set_status:
             # Initialize each phase unconditionally as not_started
