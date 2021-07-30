@@ -62,11 +62,11 @@ Note: Changing NODE_STATE_CHECK_SLEEP_INTERVAL will make the process happen more
 ### Unit Tests
 Here is how to run the unit test.
 First, build the testing Docker image.
-docker build . --target testing -t arti.dev.cray.com/csm-docker-unstable-local/cray-boa:testing
+docker build . --target testing -t artifactory.algol60.net/csm-docker/unstable/cray-boa:testing
 Second, create a results directory
 mkdir -p results
 Third, run the test image, placing the results into the local results directory.
-docker run -d --mount type=bind,source="$(pwd)"/results,target=/results arti.dev.cray.com/csm-docker-unstable-local/cray-boa:testing
+docker run -d --mount type=bind,source="$(pwd)"/results,target=/results artifactory.algol60.net/csm-docker/unstable/cray-boa:testing
 Fourth, check the results directory for results of the unit test run.
 less ./results/pytests.out
 Fix any test failures and repeat until all tests pass.
