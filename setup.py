@@ -36,7 +36,7 @@ setuptools.setup(
     description="Boot Orchestration Agent",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://stash.us.cray.com/projects/SCMS/repos/boa/browse",
+    url="https://github.com/Cray-HPE/boa",
     packages=['cray.boa', 'cray.boa.rootfs', 'cray.boa.smd', 'cray.boa.log', 'cray.boa.bootimagemetadata'],
     keywords="cray boot orchestration agent",
     classifiers=(
