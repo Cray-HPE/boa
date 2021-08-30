@@ -47,4 +47,5 @@ RUN apk add --no-cache busybox-extras && \
 ENTRYPOINT [ "python3", "-m", "cray.boa" ]
 
 FROM install as prod
+USER 65534:65534
 ENTRYPOINT [ "python3", "-m", "cray.boa" ]
