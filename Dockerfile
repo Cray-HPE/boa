@@ -24,7 +24,10 @@
 FROM artifactory.algol60.net/docker.io/alpine:3.13 as base
 WORKDIR /app
 ADD constraints.txt requirements.txt /app/
-RUN apk add --no-cache linux-headers gcc g++ python3-dev py3-pip musl-dev libffi-dev openssl-dev git && \
+RUN apk add --upgrade --no-cache apk-tools &&  \
+	apk update && \
+	apk add --no-cache linux-headers gcc g++ python3-dev py3-pip musl-dev libffi-dev openssl-dev git && \
+	apk -U upgrade --no-cache && \
     pip3 install --no-cache-dir -U pip && \
     pip3 install --no-cache-dir -r requirements.txt
 COPY src/ /app/lib/
@@ -47,4 +50,5 @@ RUN apk add --no-cache busybox-extras && \
 ENTRYPOINT [ "python3", "-m", "cray.boa" ]
 
 FROM install as prod
+USER 65534:65534
 ENTRYPOINT [ "python3", "-m", "cray.boa" ]

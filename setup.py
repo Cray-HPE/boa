@@ -40,8 +40,8 @@ setuptools.setup(
     packages=['cray.boa', 'cray.boa.rootfs', 'cray.boa.smd', 'cray.boa.log', 'cray.boa.bootimagemetadata'],
     keywords="cray boot orchestration agent",
     classifiers=(
-        "Programming Language :: Python :: 3.7",
-        "License :: Other/Proprietary License",
+        "Programming Language :: Python :: 3.6",
+        "License :: MIT",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: System :: Systems Administration",
     ),
