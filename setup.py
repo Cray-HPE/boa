@@ -41,7 +41,7 @@ setuptools.setup(
     keywords="cray boot orchestration agent",
     classifiers=(
         "Programming Language :: Python :: 3.6",
-        "License :: MIT",
+        "License :: OSI Approved :: MIT License",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: System :: Systems Administration",
     ),
