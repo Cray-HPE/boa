@@ -265,6 +265,14 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
 
             failed_nodes_tmp, errors_tmp = power(list(nodes_on), "off",
                                                  force=force, session=session, reason=reason)
+            if attempt == "graceful":
+                # Weed out any nodes that CAPMC said refused to turn off. Those
+                # will be handled during the forceful power off.
+                if "exceeded retries waiting for component to be Off" in errors_tmp:
+                    nodes_failed_to_power_off = set(errors_tmp["exceeded retries waiting for component to be Off"])
+                    failed_nodes_tmp = failed_nodes_tmp - nodes_failed_to_power_off
+                    LOGGER.warn("CAPMC reported these nodes failed to power off. They will be forcefully powered off: {}".format(nodes_failed_to_power_off))
+
         except ValueError as e:
             LOGGER.critical("Error calling 'power': %s", e)
             return nodes_on, errors
