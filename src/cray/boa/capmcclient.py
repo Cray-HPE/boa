@@ -33,7 +33,8 @@ from cray.boa.connection import requests_retry_session
 
 LOGGER = logging.getLogger(__name__)
 SERVICE_NAME = 'cray-capmc'
-ENDPOINT = "%s://%s/capmc" % (PROTOCOL, SERVICE_NAME)
+CAPMC_VERSION = 'v1'
+ENDPOINT = "%s://%s/capmc/%s" % (PROTOCOL, SERVICE_NAME, CAPMC_VERSION)
 
 
 class CapmcException(TransientException):
