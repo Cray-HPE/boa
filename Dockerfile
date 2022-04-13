@@ -23,7 +23,7 @@
 #
 # Dockerfile for Boot Orchestration Agent
 
-FROM artifactory.algol60.net/docker.io/alpine:3.13 as base
+FROM artifactory.algol60.net/csm-docker/stable/docker.io/library/alpine:3 as base
 WORKDIR /app
 ADD constraints.txt requirements.txt /app/
 RUN apk add --upgrade --no-cache apk-tools &&  \
@@ -31,7 +31,7 @@ RUN apk add --upgrade --no-cache apk-tools &&  \
 	apk add --no-cache linux-headers gcc g++ python3-dev py3-pip musl-dev libffi-dev openssl-dev git && \
 	apk -U upgrade --no-cache && \
     pip3 install --no-cache-dir -U pip && \
-    pip3 install --no-cache-dir -r requirements.txt
+    pip3 install --no-cache-dir -r requirements.txt --ignore-installed six
 COPY src/ /app/lib/
 
 FROM base as install
