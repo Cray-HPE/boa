@@ -31,7 +31,7 @@ RUN apk add --upgrade --no-cache apk-tools &&  \
 	apk add --no-cache linux-headers gcc g++ python3-dev py3-pip musl-dev libffi-dev openssl-dev git && \
 	apk -U upgrade --no-cache && \
     pip3 install --no-cache-dir -U pip && \
-    pip3 install --no-cache-dir -r requirements.txt
+    pip3 install --no-cache-dir -r requirements.txt --ignore-installed six
 COPY src/ /app/lib/
 
 FROM base as install
