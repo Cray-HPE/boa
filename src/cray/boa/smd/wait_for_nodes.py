@@ -194,7 +194,7 @@ def wait_for_state(nodes, state, duration=70, interval=5, session=None, invert=F
                        mismatch_count, desired_state, ', '.join(sorted(state_mismatch)[:5]))
     else:
         LOGGER.warning("%s nodes failed to enter state '%s'; %s..." ,
-                       mismatch_count, desired_state, ', '.join(sorted(state_mismatch[:5])))
+                       mismatch_count, desired_state, ', '.join(sorted(state_mismatch)[:5]))
     if nodecount_in_desired_state >= minimum_required_success:
         return state_mismatch
     else:
