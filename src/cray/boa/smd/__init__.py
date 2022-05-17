@@ -29,6 +29,5 @@ Created on Apr 26, 2019
 
 from cray.boa import PROTOCOL
 SERVICE_NAME = 'cray-smd'
-ENDPOINT = "%s://%s/hsm/v1/" % (PROTOCOL, SERVICE_NAME)
-
+ENDPOINT = "%s://%s/hsm/v2/" % (PROTOCOL, SERVICE_NAME)
 
