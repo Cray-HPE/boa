@@ -40,7 +40,8 @@ from cray.boa.logutil import call_logger
 
 LOGGER = logging.getLogger(__name__)
 SERVICE_NAME = 'cray-smd'
-ENDPOINT = "%s://%s/hsm/v1/" % (PROTOCOL, SERVICE_NAME)
+ENDPOINT = "%s://%s/hsm/v2/" % (PROTOCOL, SERVICE_NAME)
+
 
 @call_logger
 def node_map(key, node_list, session=None):
