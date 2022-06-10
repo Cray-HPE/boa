@@ -23,7 +23,7 @@
 #
 # Dockerfile for Boot Orchestration Agent
 
-FROM artifactory.algol60.net/csm-docker/stable/docker.io/library/alpine:3 as base
+FROM artifactory.algol60.net/csm-docker/stable/docker.io/library/alpine:3.15 as base
 WORKDIR /app
 ADD constraints.txt requirements.txt /app/
 RUN apk add --upgrade --no-cache apk-tools &&  \
