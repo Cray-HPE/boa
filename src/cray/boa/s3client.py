@@ -32,7 +32,7 @@ import logging
 import os
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, BotoCoreError
 from botocore.config import Config as BotoConfig
 from urllib.parse import urlparse
 
@@ -212,7 +212,7 @@ class S3BootArtifacts(S3Object):
         try:
             s3_manifest_obj = self.object
             s3_manifest_data = s3_manifest_obj['Body'].read().decode('utf-8')
-        except (ClientError, NoSuchKey) as error:
+        except (ClientError, BotoCoreError) as error:
             LOGGER.error("Unable to read manifest file {}.".format(self.path))
             LOGGER.debug(error)
             raise
