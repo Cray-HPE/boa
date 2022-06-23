@@ -172,10 +172,13 @@ class S3Object:
 
         LOGGER.info("++ _get_s3_download_url %s with etag %s.", self.path, self.etag)
         try:
+            LOGGER.info("Pulling s3 object with bucket: '%s' and key: '%s'", self.s3url.bucket, self.s3url.key)
             return s3.get_object(Bucket=self.s3url.bucket, Key=self.s3url.key)
         except ClientError as error:
             LOGGER.error("Unable to download object {}.".format(self.path))
             LOGGER.debug(error)
+            from time import sleep
+            sleep(100000)
             raise
 
 
