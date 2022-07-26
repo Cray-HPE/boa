@@ -11,6 +11,11 @@ https://connect.us.cray.com/confluence/pages/viewpage.action?pageId=133562640.
 
 ## Requirements
 
+## Changelog
+
+See the [CHANGELOG](CHANGELOG.md) for changes. This file uses the [Keep A Changelog](https://keepachangelog.com)
+format.
+
 ## Build the Docker image
 docker build -t boa .
 
