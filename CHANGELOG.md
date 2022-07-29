@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-
+- Pin to later version of Alpine. Update Python 3 dependencies.
 - Initial implementation @jsollom-hpe
 
 [Unreleased]: https://github.com/Cray-HPE/boa/compare/v1.2.80..HEAD
