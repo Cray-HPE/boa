@@ -133,7 +133,7 @@ class PreflightCheck(object):
         return self.check_uri(CFS_ENDPOINT)
 
     def check_capmc(self):
-        return self.check_uri(os.path.join(CAPMC_ENDPOINT, 'get_node_rules'),)
+        return self.check_uri(os.path.join(CAPMC_ENDPOINT, 'health'),)
 
     def check_smd(self):
         return self.check_uri(os.path.join(SMD_ENDPOINT, 'groups'),)
