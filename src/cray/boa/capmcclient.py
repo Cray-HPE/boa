@@ -27,7 +27,7 @@ import requests
 import json
 from collections import defaultdict
 
-from cray.boa import TransientException, PROTOCOL
+from cray.boa import TransientException, PROTOCOL, ServiceError
 from cray.boa.logutil import call_logger
 from cray.boa.connection import requests_retry_session
 
@@ -49,7 +49,7 @@ class CapmcTimeoutException(CapmcException):
     """
 
 
-class CapmcDeprecationException(CapmcException):
+class CapmcDeprecationException(ServiceError):
     """
     All or part of a request cannot be completed because it requires functionality
     that has been effectively deprecated out of a major version of capmc.
