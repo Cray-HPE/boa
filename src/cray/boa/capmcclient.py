@@ -49,6 +49,13 @@ class CapmcTimeoutException(CapmcException):
     """
 
 
+class CapmcDeprecationException(CapmcException):
+    """
+    All or part of a request cannot be completed because it requires functionality
+    that has been effectively deprecated out of a major version of capmc.
+    """
+
+
 def status(nodes, filtertype='show_all', session=None):
     """
     For a given iterable of nodes, represented by xnames, query CAPMC for
@@ -192,6 +199,10 @@ def power(nodes, state, force=True, session=None, reason="BOA: Powering nodes"):
 
     session = session or requests_retry_session()
     prefix, output_format = node_type(nodes)
+    if output_format == 'nids':
+        raise CapmcDeprecationException("CAPMC deprecated power control for nid based entries; "
+                                        "please convert remaining session template references from "
+                                        "nids over to xnames.")
     power_endpoint = '%s/%s_%s' % (ENDPOINT, prefix, state)
 
     if state == "on":
