@@ -27,7 +27,7 @@ import requests
 import json
 from collections import defaultdict
 
-from cray.boa import TransientException, PROTOCOL
+from cray.boa import TransientException, PROTOCOL, ServiceError
 from cray.boa.logutil import call_logger
 from cray.boa.connection import requests_retry_session
 
@@ -46,6 +46,13 @@ class CapmcException(TransientException):
 class CapmcTimeoutException(CapmcException):
     """
     Raised when a call to CAPMC exceeded total time to complete.
+    """
+
+
+class CapmcDeprecationException(ServiceError):
+    """
+    All or part of a request cannot be completed because it requires functionality
+    that has been effectively deprecated out of a major version of capmc.
     """
 
 
@@ -192,6 +199,10 @@ def power(nodes, state, force=True, session=None, reason="BOA: Powering nodes"):
 
     session = session or requests_retry_session()
     prefix, output_format = node_type(nodes)
+    if output_format == 'nids':
+        raise CapmcDeprecationException("CAPMC deprecated power control for nid based entries; "
+                                        "please convert remaining session template references from "
+                                        "nids over to xnames.")
     power_endpoint = '%s/%s_%s' % (ENDPOINT, prefix, state)
 
     if state == "on":

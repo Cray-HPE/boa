@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-
+- Updated deprecation warnings for use of nid based calls to capmc
+- Switch preflight check URI for capmc
+- Pin to later version of Alpine. Update Python 3 dependencies.
 - Initial implementation @jsollom-hpe
 
 [Unreleased]: https://github.com/Cray-HPE/boa/compare/v1.2.80..HEAD
