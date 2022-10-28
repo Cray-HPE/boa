@@ -73,6 +73,36 @@ class CPSS3Provider(RootfsProvider):
         else:
             return ''
 
+    def __str__(self):
+        """
+        The value to add to the boot parameter.
+        It follows this format.
+        provider_field<DELIMITER>provider_field_id<DELIMITER>rootfs_provider_passthrough
+        If the fields are blank, a blank will be provided in its place and followed
+        by the delimiter.         
+        """
+        fields = []
+        if self.PROTOCOL:
+            fields.append(self.PROTOCOL)
+
+        if self.provider_field:
+            fields.append(self.provider_field)
+        else:
+            fields.append("")
+
+        if self.provider_field_id:
+            fields.append(self.provider_field_id)
+        else:
+            fields.append("")
+
+        if self.agent.rootfs_provider_passthrough:
+            fields.append(self.agent.rootfs_provider_passthrough)
+
+        if fields:
+            return "root={}".format(self.DELIMITER.join(fields))
+        else:
+            return ''
+
 
 def check_cpss3(session=None):
     """

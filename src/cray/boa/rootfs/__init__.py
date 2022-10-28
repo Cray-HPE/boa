@@ -57,6 +57,10 @@ class RootfsProvider(object):
     def __str__(self):
         """
         The value to add to the boot parameter.
+        It follows this format.
+        provider_field<DELIMITER>provider_field_id<DELIMITER>rootfs_provider_passthrough
+        The fields are only present if they exist; otherwise, they are not present and
+        the delimiter following that field is not present.
         """
         fields = []
         if self.PROTOCOL:
@@ -64,13 +68,9 @@ class RootfsProvider(object):
 
         if self.provider_field:
             fields.append(self.provider_field)
-        else:
-            fields.append("")
 
         if self.provider_field_id:
             fields.append(self.provider_field_id)
-        else:
-            fields.append("")
 
         if self.agent.rootfs_provider_passthrough:
             fields.append(self.agent.rootfs_provider_passthrough)

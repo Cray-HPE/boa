@@ -10,9 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial implementation @jsollom-hpe
 ### Changed
 - Spelling corrections.
-
+- Fixed an issue where non-CPSS3 rootfs providers had CPSS3's formatting forced onto their 'root' kernel parameter.	
 [Unreleased]: https://github.com/Cray-HPE/boa/compare/v1.2.80..HEAD
 
+	
 [1.2.80]: Version released in CSM-1.2
-	
-	
+
