@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Initial implementation @jsollom-hpe
+- Allow BOA to avoid populating root=<flag> values when no provider, or rootfs passthrough parameters are used
 ### Changed
 - Spelling corrections.
 
