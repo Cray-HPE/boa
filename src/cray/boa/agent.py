@@ -567,9 +567,9 @@ class BootSetAgent(object):
         """
         if self._boot_set_status:
             return self._boot_set_status
-        # Boot Set Statusnes need to be re-entrant safe; that is,
+        # Boot Set Statuses need to be re-entrant safe; that is,
         # we assume any existing records with our same name have been
-        # sasfely (and sanely) created before us. We need to resume
+        # safely (and sanely) created before us. We need to resume
         # using these.
         self._boot_set_status = BootSetStatus.CreateOrReference(self.session_status, self.boot_set, self.status_fields,
                                                                 self.nodes)
