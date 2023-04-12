@@ -58,7 +58,7 @@ class S3BootImageMetaData(BootImageMetaData):
         try:
             return self.boot_artifacts.manifest_json
         except (ClientError, S3MissingConfiguration) as error:
-            LOGGER.error("Unabled to read %s -- Error: %s", self._agent.path, error)
+            LOGGER.error("Unable to read %s -- Error: %s", self._agent.path, error)
             raise BootImageMetaDataBadRead(error)
 
     @property
