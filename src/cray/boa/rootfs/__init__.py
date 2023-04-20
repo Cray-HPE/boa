@@ -75,7 +75,7 @@ class RootfsProvider(object):
         if self.agent.rootfs_provider_passthrough:
             fields.append(self.agent.rootfs_provider_passthrough)
 
-        stripped_fields = [field for field in fields if field]
+        stripped_fields = [field for field in fields if field.strip()]
         if stripped_fields:
             return "root={}".format(self.DELIMITER.join(fields))
         else:
