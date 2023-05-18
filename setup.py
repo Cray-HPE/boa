@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2019, 2021-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2019, 2021-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -42,7 +42,7 @@ setuptools.setup(
     packages=['cray.boa', 'cray.boa.rootfs', 'cray.boa.smd', 'cray.boa.log', 'cray.boa.bootimagemetadata'],
     keywords="cray boot orchestration agent",
     classifiers=(
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: MIT License",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: System :: Systems Administration",
