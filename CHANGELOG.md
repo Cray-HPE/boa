@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - CASMCMS-8300: Rootfs passthrough now protects against additional empty strings.
-### Added
+- Update setup.py from Python 3.6 to 3.11
 
 ## [1.3.2] - 2023-04-07
 ### Changed
@@ -25,11 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pin to later version of Alpine. Update Python 3 dependencies.
 - Allow BOA to avoid populating root=<flag> values when no provider, or rootfs passthrough parameters are used
 - Initial implementation @jsollom-hpe
-### Changed
-- Spelling corrections.
 
 ## [1.2.80]: Version released in CSM-1.2
+### Changed
 - Spelling corrections.
 - Fixes rootfs provisioner issues when no rootfs provisioner is used
-
-
