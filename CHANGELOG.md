@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - CASMCMS-8300: Rootfs passthrough now protects against additional empty strings.
+- Update setup.py from Python 3.6 to 3.11
 
 ## [1.3.2] - 2023-04-07
 ### Changed
