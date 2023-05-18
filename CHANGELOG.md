@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2023-05-18
+### Changed
+- Revert setup.py from Python 3.11 to 3.10
+- Pin Alpine minor version in Dockerfile to Alpine 3.17
+
 ## [1.4.0] - 2023-05-18
 ### Changed
 - CASMCMS-8300: Rootfs passthrough now protects against additional empty strings.

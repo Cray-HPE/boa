@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2019-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2019-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 #
 # Dockerfile for Boot Orchestration Agent
 
-FROM artifactory.algol60.net/csm-docker/stable/docker.io/library/alpine:3 as base
+FROM artifactory.algol60.net/csm-docker/stable/docker.io/library/alpine:3.17 as base
 WORKDIR /app
 ADD constraints.txt requirements.txt /app/
 RUN apk add --upgrade --no-cache apk-tools &&  \
