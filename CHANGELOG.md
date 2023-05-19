@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2023-05-19
+### Changed
+- Update message to use --template-name instead of --template-uuid in CLI command.
+
 ## [1.4.1] - 2023-05-18
 ### Changed
 - Revert setup.py from Python 3.11 to 3.10
