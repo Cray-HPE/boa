@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2019-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2019-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -614,7 +614,7 @@ class BootSetAgent(object):
                 return
             LOGGER.error("These nodes failed to {}. {}".format(self.operation, self.failed_nodes))
             LOGGER.error("You can attempt to {0} these nodes by issuing the command:\n"
-                         "cray bos v1 session create --template-uuid {1} --operation {0} --limit {2}".format(
+                         "cray bos v1 session create --template-name {1} --operation {0} --limit {2}".format(
                          self.operation, self.session_template_id, ','.join(self.failed_nodes)))
 
         with self.boot_set_status:
