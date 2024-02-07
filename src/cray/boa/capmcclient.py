@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2019-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2019-2022, 2024 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -227,8 +227,6 @@ def graceful_shutdown(nodes, grace_window=300, hard_window=180, graceful_prewait
 
     Args:
       nodes (list): Nodes to power off
-      attempts (int): Number of times to attempt to power off the nodes before failing
-      frequency (int): Number of seconds to wait before re-attempting to get status on a failure
       session (Requests.session object): A Requests session instance
       grace_window (int): Number of seconds to wait for the nodes to gracefully power down
       hard_window (int): Number of seconds to wait for the nodes to power down after a forceful
