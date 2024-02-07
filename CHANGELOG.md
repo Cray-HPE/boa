@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Disabled concurrent Jenkins builds on same branch/commit
 - Added build timeout to avoid hung builds
+### Fixed
+- Removed nonexistent argument from docstring of `graceful_shutdown` function
+  in `capmcclient.py`.
 
 ## [1.4.3] - 2023-07-18
 ### Dependencies
