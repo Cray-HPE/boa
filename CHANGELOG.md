@@ -6,9 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+
+## [1.3.7] - 2024-04-01
 ### Changed
 - Disabled concurrent Jenkins builds on same branch/commit
 - Added build timeout to avoid hung builds
+
 ### Fixed
 - Removed nonexistent argument from docstring of `graceful_shutdown` function
   in `capmcclient.py`.
