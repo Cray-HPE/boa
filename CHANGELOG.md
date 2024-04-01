@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Removed nonexistent argument from docstring of `graceful_shutdown` function
   in `capmcclient.py`.
+- CASMCMS-8274: Treat CAPMC node lock errors as immediate failures, rather than waiting to eventually
+  fail due to timeout.
 
 ## [1.3.6] - 2023-07-18
 ### Dependencies
