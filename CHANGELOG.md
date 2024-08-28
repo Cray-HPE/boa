@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - List installed Python packages in Dockerfile for purposes of build logging
 
+### Dependencies
+- Use `requests-retry-session` Python package instead of duplicating its code
+
 ## [1.3.7] - 2024-04-01
 ### Changed
 - Disabled concurrent Jenkins builds on same branch/commit

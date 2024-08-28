@@ -26,7 +26,8 @@
 FROM artifactory.algol60.net/csm-docker/stable/docker.io/library/alpine:3.17 as base
 WORKDIR /app
 ADD constraints.txt requirements.txt /app/
-RUN apk add --upgrade --no-cache apk-tools &&  \
+RUN --mount=type=secret,id=netrc,target=/root/.netrc \
+    apk add --upgrade --no-cache apk-tools &&  \
 	apk update && \
 	apk add --no-cache linux-headers gcc g++ python3-dev py3-pip musl-dev libffi-dev openssl-dev git && \
 	apk -U upgrade --no-cache && \
