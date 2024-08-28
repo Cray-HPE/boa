@@ -48,7 +48,7 @@ class BootImageMetaDataFactory(object):
     """
     def __init__(self, agent):
         self.agent = agent
-    
+
     @call_logger
     def __call__(self):
         if self.agent.path_type:

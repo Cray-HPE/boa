@@ -125,7 +125,7 @@ class SessionStatus(object):
         Creates a new BOS Session status entry by initializes appropriate
         records with the BOS API. Every SessionStatus instance must be initialized
         once using this routine for associated properties to exist.
-        
+
         Failure to create a new SessionStatus instance must be accepted by
         calling routines; failure to initialize a new status results in
         a BaseBosStatusApiException raise.
@@ -203,7 +203,7 @@ class SessionStatus(object):
     def update_metadata(self, start_time=None, stop_time=None):
         """
         Update the metadata for a Session.
-    
+
           start_time (str): The time the Session started
           stop_time (str): The time the Session stopped
         """
@@ -228,7 +228,7 @@ class SessionStatus(object):
         This is a helper function to make it easier to report status when the nodes in components
         may be from different Boot Sets. Components may be handled by multiple
         different boot_sets.
-    
+
         Args:
           components: The IDs of the components we are reporting status about
           node_lookup_by_boot_set: A dictionary mapping Keys: Boot Sets (string, by name) to nodes (a list of string xnames)
@@ -241,7 +241,7 @@ class SessionStatus(object):
             Phase: 'configure'
             Source: 'not_started'
             Destination: 'succeeded'
-    
+
         """
         if not components:
             return
@@ -258,7 +258,7 @@ class SessionStatus(object):
         Update the errors for a phase within a Boot Set.
         This is a helper function to make it easier to report status when the nodes in errors
           may be from different Boot Sets.
-    
+
         Args:
           node_lookup_by_boot_set: Keys: Boot Sets; Values: Nodes
           phase (str): the Phase to update, if None the metadata for the Boot Set
@@ -310,7 +310,7 @@ class BootSetStatus(object):
     @raise_or_log
     def __init__(self, session_status, name, phases, node_list):
         """
-        Create a Status for the session. Each bootset that is part of the 
+        Create a Status for the session. Each bootset that is part of the
         session must track a set of nodes through its various phases.
     Args:
       session_status(SessionStatus): An instance of Session Status
@@ -436,7 +436,7 @@ class BootSetStatus(object):
     def update_metadata(self, phase='boot_set', start_time=None, stop_time=None):
         """
         Update the metadata for a Boot Set or a phase within a Boot Set.
-    
+
         Args:
           phase (str): the Phase to update, if None, the metadata for the Boot Set
                        itself will be updated
@@ -466,7 +466,7 @@ class BootSetStatus(object):
     def update_errors(self, phase='boot_set', errors=None):
         """
         Update the errors for a phase within a Boot Set.
-    
+
         Args:
           phase (str or None): the Phase to update, if 'boot_set' is the phase;
               if None; default to 'boot_set'.
@@ -524,11 +524,11 @@ class PhaseStatus(object):
     def generate_phase(phase_name, node_list, start_time):
         """
         Generates a phase to add to the request body during the creation of a BootSetStatus.
-    
+
         Args:
           phase_name (str): Name of the phase
           node_list (list): List of nodes (strings)
-    
+
         Returns:
           A phase dictionary
         """
@@ -598,7 +598,7 @@ class PhaseStatus(object):
     def move_nodes(self, nodes, source_category, destination_category):
         """
         Update which category a node is in within this phase.
-    
+
         Args:
           node_list (list or set): iterable of node xnames (strings)
           source_category (str): The source category to take the nodes from
@@ -626,7 +626,7 @@ class PhaseStatus(object):
     def update_metadata(self, start_time=None, stop_time=None):
         """
         Update the metadata for a Boot Set for <self> phase within a Boot Set.
-    
+
         Args:
           start_time (str): The time the phase or Boot Set started
           stop_time (str): The time the phase or Boot Set stopped

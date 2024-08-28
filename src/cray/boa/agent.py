@@ -300,7 +300,7 @@ class BootSetAgent(object):
     @property
     def session_template_kernel_parameters(self):
         """
-        session_template_kernel_parameters (str): The kernel boot parameters 
+        session_template_kernel_parameters (str): The kernel boot parameters
                                                   from the BOS Session Template
         """
         return self.boot_set_data.get('kernel_parameters', None)
@@ -329,25 +329,25 @@ class BootSetAgent(object):
     def assemble_kernel_boot_parameters(self):
         '''
         Assemble the kernel boot parameters that we want to set in the
-        Boot Script Service (BSS). 
-    
+        Boot Script Service (BSS).
+
         Append the kernel boot parameters together in this order.
-        
+
         1. Parameters from the image itself.
         2. Parameters from the BOS Session template
         3. rootfs parameters
         4. Node Memory Dump (NMD) parameters
-    
+
         Warning: We need to ensure that the 'root' parameter exists and is set correctly.
         If any of the parameter locations are empty, they are simply not used.
-    
+
         TODO: CASMCMS-2590: When we have a better definition on this, this
         function will do something.
-    
+
         Returns:
             A string containing the needed kernel boot parameters
-    
-        Raises: 
+
+        Raises:
             ClientError -- An S3 client error
         '''
 
@@ -598,8 +598,8 @@ class BootSetAgent(object):
 
     def __call__(self, queue=None):
         """
-        Instruct the boot set agent to run. Under normal execution scenarios, 
-        preflight checks are issued and then a series of staging operations are executed, as 
+        Instruct the boot set agent to run. Under normal execution scenarios,
+        preflight checks are issued and then a series of staging operations are executed, as
         defined by the operation. Each operation has one or more phases associated with it.
 
         BOA executes multiple agents concurrently, one per boot set defined
@@ -703,13 +703,13 @@ class BootSetAgent(object):
         Massages the environment variables into a usable form.
         It weeds out empty environment variables and uses the default
         values instead from the args_dict.
-        
+
         Input:
-          args_dict (dict): Key/value where the value is a tuple containing 
+          args_dict (dict): Key/value where the value is a tuple containing
                             the environment variable and a default value.
-        
+
         Returns:
-          A dictionary containing lower-cased environment variable keys and 
+          A dictionary containing lower-cased environment variable keys and
           their values. The keys are based on the args_dict input.
         """
         args = {}

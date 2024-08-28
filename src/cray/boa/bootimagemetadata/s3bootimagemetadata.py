@@ -51,7 +51,7 @@ class S3BootImageMetaData(BootImageMetaData):
         """
         Get the initial object metadata. This metadata may contain information
         about the other boot objects -- kernel, initrd, rootfs, kernel parameters.
-        
+
         Raises:
           BootImageMetaDataBadRead -- it cannot read the manifest
         """
@@ -63,7 +63,7 @@ class S3BootImageMetaData(BootImageMetaData):
 
     @property
     def kernel(self):
-        """ 
+        """
         Get the kernel object
         As an example, the object looks like this
         {'link': {'etag': 'dcaa006fdd460586e62f9ec44e7f61cf',
@@ -76,7 +76,7 @@ class S3BootImageMetaData(BootImageMetaData):
 
     @property
     def initrd(self):
-        """ 
+        """
         Get the initrd object
         As an example, the object looks like this
         {'link': {'etag': 'be2927a765c88558370ee1c5edf1c50c-3',
@@ -89,7 +89,7 @@ class S3BootImageMetaData(BootImageMetaData):
 
     @property
     def boot_parameters(self):
-        """ 
+        """
         Get the boot parameters object
         As an example, the object looks like this
         {'link': {'etag': 'dcaa006fdd460586e62f9ec44e7f61cf',
@@ -102,7 +102,7 @@ class S3BootImageMetaData(BootImageMetaData):
 
     @property
     def rootfs(self):
-        """ 
+        """
         Get the rootfs object
         As an example, the object looks like this
         {'link': {'etag': 'f04af5f34635ae7c507322985e60c00c-131',
@@ -115,38 +115,38 @@ class S3BootImageMetaData(BootImageMetaData):
 
     @property
     def kernel_path(self):
-        """ 
-        Get the S3 path to the kernel 
+        """
+        Get the S3 path to the kernel
         """
         return self.kernel['link']['path']
 
     @property
     def initrd_path(self):
-        """ 
-        Get the S3 path to the initrd 
+        """
+        Get the S3 path to the initrd
         """
         return self.initrd['link']['path']
 
     @property
     def rootfs_path(self):
-        """ 
-        Get the S3 path to the rootfs 
+        """
+        Get the S3 path to the rootfs
         """
         return self.rootfs['link']['path']
 
     @property
     def rootfs_etag(self):
-        """ 
-        Get the S3 etag to the rootfs 
+        """
+        Get the S3 etag to the rootfs
         """
         return self.rootfs['link']['etag']
 
     @property
     def boot_parameters_path(self):
-        """ 
-        Get the S3 path to the boot parameters 
+        """
+        Get the S3 path to the boot parameters
         This attribute may not exist.
-        
+
         Returns:
           The S3 path to the boot parameters file, if it exists
           else None
@@ -158,11 +158,11 @@ class S3BootImageMetaData(BootImageMetaData):
 
     @property
     def boot_parameters_etag(self):
-        """ 
+        """
         Get the S3 path to the boot parameter's etag
         This attribute may not exist.
         Returns:
-          The S3 path to the boot parameters etag file, 
+          The S3 path to the boot parameters etag file,
           if it exists else None
         """
         bp = self.boot_parameters

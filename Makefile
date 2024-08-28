@@ -27,7 +27,7 @@
 NAME ?= cray-boa
 DOCKER_VERSION ?= $(shell head -1 .docker_version)
 
-all : runbuildprep lint image 
+all : runbuildprep lint image
 
 runbuildprep:
 		./cms_meta_tools/scripts/runBuildPrep.sh

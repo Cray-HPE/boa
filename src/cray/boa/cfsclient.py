@@ -175,10 +175,10 @@ def wait_for_configuration(boot_set_agent, maximum_duration=1800, check_interval
                            success_threshold=1.0):
     """
     Given a set of nodes in a Boot Set agent, wait for them to all reach fully configured status.
-    We will exit early if the failures exceed failure_threshold. 
+    We will exit early if the failures exceed failure_threshold.
     Args:
       boot_set_agent (BootSetAgent): The BootSetAgent contains a cfs client, a set of nodes,
-          and appropriate status reporting/aggregating methods 
+          and appropriate status reporting/aggregating methods
       maximum_duration: The period of time, in seconds, that we wait for components to
         become configured. When set to zero, wait indefinitely
       check_interval: The period of time between calls to CFS for component information

@@ -61,19 +61,19 @@ def status(nodes, filtertype='show_all', session=None):
     For a given iterable of nodes, represented by xnames, query CAPMC for
     the power status of all nodes. Return a dictionary of nodes that have
     been bucketed by status.
-    
+
     Args:
       nodes (list): Nodes to get status for
-      filtertype (str): Type of filter to use when sorting 
-      
+      filtertype (str): Type of filter to use when sorting
+
     Returns:
       status_dict (dict): Keys are different states; values are a literal set of nodes
       failed_nodes (set): A set of the nodes that had errors
       errors (dict): A dictionary containing the nodes (values)
                      suffering from errors (keys)
-    
+
     Raises:
-      HTTPError 
+      HTTPError
       JSONDecodeError -- error decoding the CAPMC response
     """
     endpoint = '%s/get_xname_status' % (ENDPOINT)
@@ -173,7 +173,7 @@ def power(nodes, state, force=True, session=None, reason="BOA: Powering nodes"):
 
     It is important to note that CAPMC will respond with a 200 response, even if it fails
     to power the node to the desired state.
-    
+
     Args:
       nodes (list): Nodes to power on
       state (string): Power state: off or on
@@ -184,7 +184,7 @@ def power(nodes, state, force=True, session=None, reason="BOA: Powering nodes"):
       failed (set): the nodes that failed to enter the desired power state
       boot_errors (dict): A dictionary containing the nodes (values)
                           suffering from errors (keys)
-    
+
     Raises:
       ValueError: if state is neither 'off' nor 'on'
     """
@@ -347,7 +347,7 @@ def call(endpoint, nodes, node_format='xnames', reason="None given", session=Non
         to the payload body.
     Raises:
         requests.exceptions.HTTPError -- when an HTTP error occurs
-        
+
     Returns: The parsed JSON response from the JSON based API.
     '''
     payload = {'reason': reason,
