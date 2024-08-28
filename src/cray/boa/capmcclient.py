@@ -101,7 +101,7 @@ def status(nodes, filtertype='show_all', session=None):
         LOGGER.error("CAPMC responded with an error response code '%s': %s"
                      % (json_response['e'], json_response))
 
-    failed_nodes, errors = parse_response(json_response)
+    failed_nodes, errors = parse_response(json_response, nodes)
 
     for key in ('e', 'err_msg'):
         try:
@@ -114,7 +114,7 @@ def status(nodes, filtertype='show_all', session=None):
     return status_bucket, failed_nodes, errors
 
 
-def parse_response(response):
+def parse_response(response, target_nodes):
     """
     Takes a CAPMC power action JSON response and process it for partial
     communication errors. This function is used in booting as well as
@@ -162,6 +162,15 @@ def parse_response(response):
         # Collect all failed nodes.
         for nodes in reasons_for_failure.values():
             failed_nodes |= set(nodes)
+    if response['e'] == 37:
+        # CASMCMS-8274: Log when we get error 37, indicating a failure due to locked nodes.
+        err_msg = response['err_msg'] if 'err_msg' in response else "CAPMC node lock error 37"
+
+        # CAPMC does not associate it with any nodes, so we add it as a reason for failure for
+        # all nodes which are not covered by other failures already
+        potentially_locked_nodes = [node for node in target_nodes if node not in failed_nodes]
+        reasons_for_failure[err_msg].extend(potentially_locked_nodes)
+        failed_nodes |= set(potentially_locked_nodes)
     return failed_nodes, reasons_for_failure
 
 
@@ -210,7 +219,7 @@ def power(nodes, state, force=True, session=None, reason="BOA: Powering nodes"):
     elif state == "off":
         json_response = call(power_endpoint, nodes, output_format, reason, force=force)
 
-    failed_nodes, errors = parse_response(json_response)
+    failed_nodes, errors = parse_response(json_response, nodes)
     return failed_nodes, errors
 
 
@@ -381,16 +390,19 @@ if __name__ == '__main__':
     # shutdown(my_nodes)
     # Testcase 0; happypath
     response = {}
-    failed_nodes = parse_response(response)
+    nodes = []
+    failed_nodes, _ = parse_response(response, nodes)
     assert len(failed_nodes) == 0
     # Testcase 1; one node with one error
     response = {"e":-1, "err_msg":"Errors encountered with 1/1 Xnames issued On", "xnames":[{"xname":"x3000c0s19b3n0", "e":-1, "err_msg":"NodeBMC Communication Error"}]}
-    failed_nodes = parse_response(response)
+    nodes = [ x["xname"] for x in response["xnames"] ]
+    failed_nodes, _ = parse_response(response, nodes)
     assert len(failed_nodes) == 1
     # Testcase 2; two nodes with one kind of error
     response = {"e":-1, "err_msg":"Errors encountered with 2/2 Xnames issued On", "xnames":[{"xname":"x3000c0s19b3n0", "e":-1, "err_msg":"NodeBMC Communication Error"},
                                                                                           {"xname":"x3000c0s19b3n1", "e":-1, "err_msg":"NodeBMC Communication Error"}]}
-    failed_nodes = parse_response(response)
+    nodes = [ x["xname"] for x in response["xnames"] ]
+    failed_nodes, _ = parse_response(response, nodes)
     assert len(failed_nodes) == 2
     # Testcase 3; failures > threshold, one kind of error
     response = {"e":-1, "err_msg":"Errors encountered with 7/7 Xnames issued On", "xnames":[{"xname":"x3000c0s19b3n0", "e":-1, "err_msg":"NodeBMC Communication Error"},
@@ -400,7 +412,8 @@ if __name__ == '__main__':
                                                                                           {"xname":"x3000c0s19b3n4", "e":-1, "err_msg":"NodeBMC Communication Error"},
                                                                                           {"xname":"x3000c0s19b3n5", "e":-1, "err_msg":"NodeBMC Communication Error"},
                                                                                           {"xname":"x3000c0s19b3n6", "e":-1, "err_msg":"NodeBMC Communication Error"}]}
-    failed_nodes = parse_response(response)
+    nodes = [ x["xname"] for x in response["xnames"] ]
+    failed_nodes, _ = parse_response(response, nodes)
     assert len(failed_nodes) == 7
     # Testcase 4: failures > threshold, multiple kinds of errors
     response = {"e":-1, "err_msg":"Errors encountered with 7/7 Xnames issued On", "xnames":[{"xname":"x3000c0s19b3n0", "e":-1, "err_msg":"NodeBMC Communication Error"},
@@ -410,9 +423,11 @@ if __name__ == '__main__':
                                                                                           {"xname":"x3000c0s19b3n4", "e":-1, "err_msg":"NodeBMC Communication Error"},
                                                                                           {"xname":"x3000c0s19b3n5", "e":-1, "err_msg":"NodeBMC Communication Error"},
                                                                                           {"xname":"x3000c0s19b3n6", "e":-1, "err_msg":"NodeBMC went out to lunch!"}]}
-    failed_nodes = parse_response(response)
+    nodes = [ x["xname"] for x in response["xnames"] ]
+    failed_nodes, _ = parse_response(response, nodes)
     assert len(failed_nodes) == 7
     # Testcase 5; situation normal.
     response = {'e': 0}
-    failed_nodes = parse_response(response)
+    nodes = []
+    failed_nodes, _ = parse_response(response, nodes)
     assert len(failed_nodes) == 0

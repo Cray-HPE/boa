@@ -6,17 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Changed
+- List installed Python packages in Dockerfile for purposes of build logging
 
-## [1.4.4] - 2024-08-28
+### Dependencies
+- Use `requests-retry-session` Python package instead of duplicating its code
+
+## [1.4.4] - 2024-04-01
 ### Changed
 - Disabled concurrent Jenkins builds on same branch/commit
 - Added build timeout to avoid hung builds
-- List installed Python packages in Dockerfile for purposes of build logging
+
 ### Fixed
 - Removed nonexistent argument from docstring of `graceful_shutdown` function
   in `capmcclient.py`.
-### Dependencies
-- Use `requests-retry-session` Python package instead of duplicating its code
+- CASMCMS-8274: Treat CAPMC node lock errors as immediate failures, rather than waiting to eventually
+  fail due to timeout.
 
 ## [1.4.3] - 2023-07-18
 ### Dependencies
