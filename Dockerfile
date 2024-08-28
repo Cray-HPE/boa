@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2019-2023 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2019-2024 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -30,25 +30,32 @@ RUN apk add --upgrade --no-cache apk-tools &&  \
 	apk update && \
 	apk add --no-cache linux-headers gcc g++ python3-dev py3-pip musl-dev libffi-dev openssl-dev git && \
 	apk -U upgrade --no-cache && \
+    pip3 list --format freeze && \
     pip3 install --no-cache-dir -U pip && \
-    pip3 install --no-cache-dir -r requirements.txt
+    pip3 list --format freeze && \
+    pip3 install --no-cache-dir -r requirements.txt  && \
+    pip3 list --format freeze
 COPY src/ /app/lib/
 
 FROM base as install
 COPY setup.py .version /app/lib/
-RUN cd /app/lib && pip3 install --no-cache-dir . && \
+RUN cd /app/lib && \
+    pip3 install --no-cache-dir . && \
+    pip3 list --format freeze && \
     rm -rf /app/*
 COPY where_is_code.sh /app/
 
 FROM base as testing
 WORKDIR /app/
 COPY docker_test_entry.sh .
-RUN pip3 install --no-cache-dir -r /app/lib/cray/boa/test/test_requirements.txt
+RUN pip3 install --no-cache-dir -r /app/lib/cray/boa/test/test_requirements.txt && \
+    pip3 list --format freeze
 ENTRYPOINT [ "./docker_test_entry.sh" ]
 
 FROM install as debug
 RUN apk add --no-cache busybox-extras && \
-    pip3 install --no-cache-dir rpdb
+    pip3 install --no-cache-dir rpdb && \
+    pip3 list --format freeze
 ENTRYPOINT [ "python3", "-m", "cray.boa" ]
 
 FROM install as prod
