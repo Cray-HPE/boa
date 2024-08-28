@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Removed nonexistent argument from docstring of `graceful_shutdown` function
   in `capmcclient.py`.
+### Dependencies
+- Use `requests-retry-session` Python package instead of duplicating its code
 
 ## [1.4.3] - 2023-07-18
 ### Dependencies
