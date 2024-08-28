@@ -54,7 +54,7 @@ def set_bss_urls(agent, node_set, kernel_params, boot_artifacts, session=None):
         Nothing
 
     Raises:
-        KeyError -- If the boot_artifacts does not find either the initrd 
+        KeyError -- If the boot_artifacts does not find either the initrd
                     or kernel keys, this error is raised.
         ValueError -- if the kernel_parameters contains an 'initrd'
         requests.exceptions.HTTPError -- An HTTP error encountered while

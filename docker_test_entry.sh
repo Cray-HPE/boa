@@ -31,4 +31,3 @@ mkdir -p /results
 # The above nosetests can be removed once pytest duplicates
 # all of the needed functionality.
 pytest --rootdir=/app/lib/cray/boa/test 2>&1 | tee /results/pytests.out
- 

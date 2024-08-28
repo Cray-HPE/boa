@@ -34,7 +34,7 @@ class BootImageMetaData(object):
         Base class for BootImage Metadata object
         """
         self._agent = agent
-    
+
     @property
     def metadata(self):
         """
@@ -42,31 +42,31 @@ class BootImageMetaData(object):
         about the other boot objects -- kernel, initrd, rootfs, kernel parameters.
         """
         return None
-    
+
     @property
     def kernel(self):
-        """ 
+        """
         Get the kernel
         """
         return None
 
     @property
     def initrd(self):
-        """ 
+        """
         Get the initrd
         """
         return None
 
     @property
     def boot_parameters(self):
-        """ 
+        """
         Get the boot parameters
         """
         return None
 
     @property
     def rootfs(self):
-        """ 
+        """
         Get the kernel
         """
         return None

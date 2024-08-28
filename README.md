@@ -23,7 +23,7 @@ docker build -t boa .
 docker build -t boa --target debug .
 
 ## Debugging hints
-Building a debug image is easy enough to do. Use rpdb to debug issues. It 
+Building a debug image is easy enough to do. Use rpdb to debug issues. It
 provides good visibility into otherwise inscrutable problems.
 
 Creating a BOA Docker image tagged with your user ID is an easy way to put your
@@ -41,10 +41,10 @@ kubectl -n services get pods | grep bos
 kubectl -n services delete pod <bos-pod-id>
 ```
 
-To clean up, remember to revert your changes in the boa-config map and 
+To clean up, remember to revert your changes in the boa-config map and
 restart the BOS pod.
 
-You can cause node boots to time out faster by adding the following 
+You can cause node boots to time out faster by adding the following
 environment variables to the configmap boa-job-template. These variables
 do not appear in the configmap by default. Their default values are shown
 below.
@@ -55,9 +55,9 @@ env:
     value: "5"
 
 NODE_STATE_CHECK_NUMBER_OF_RETRIES -- BOA will check on the expected state of nodes this many times before
-                                      giving up. You can crank this down to a very low number to make 
+                                      giving up. You can crank this down to a very low number to make
                                       BOA time-out quickly.
-NODE_STATE_CHECK_SLEEP_INTERVAL -- This is how long BOA will sleep between checks. You can crank this down to a very low number to make 
+NODE_STATE_CHECK_SLEEP_INTERVAL -- This is how long BOA will sleep between checks. You can crank this down to a very low number to make
                                       BOA time-out quickly.
 
 Note: Changing NODE_STATE_CHECK_SLEEP_INTERVAL will make the process happen more quickly than NODE_STATE_CHECK_SLEEP_INTERVAL.
@@ -77,7 +77,7 @@ less ./results/pytests.out
 Fix any test failures and repeat until all tests pass.
 
 ## Build Helpers
-This repo uses some build helpers from the 
+This repo uses some build helpers from the
 [cms-meta-tools](https://github.com/Cray-HPE/cms-meta-tools) repo. See that repo for more details.
 
 ## Local Builds
@@ -90,13 +90,13 @@ builds a docker image), and .chart_version (if this repo builds a helm chart) fi
 on github, this is done by the setVersionFiles() function.
 
 ## Versioning
-The version of this repo is generated dynamically at build time by running the version.py script in 
-cms-meta-tools. The version is included near the very beginning of the github build output. 
+The version of this repo is generated dynamically at build time by running the version.py script in
+cms-meta-tools. The version is included near the very beginning of the github build output.
 
 In order to make it easier to go from an artifact back to the source code that produced that artifact,
 a text file named gitInfo.txt is added to Docker images built from this repo. For Docker images,
 it can be found in the / folder. This file contains the branch from which it was built and the most
-recent commits to that branch. 
+recent commits to that branch.
 
 For helm charts, a few annotation metadata fields are appended which contain similar information.
 
@@ -104,7 +104,7 @@ For RPMs, a changelog entry is added with similar information.
 
 ## New Release Branches
 When making a new release branch:
-    * Be sure to set the `.x` and `.y` files to the desired major and minor version number for this repo for this release. 
+    * Be sure to set the `.x` and `.y` files to the desired major and minor version number for this repo for this release.
     * If an `update_external_versions.conf` file exists in this repo, be sure to update that as well, if needed.
 
 ## Copyright and License

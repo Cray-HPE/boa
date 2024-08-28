@@ -89,7 +89,7 @@ class TestKernelParameters(object):
         return ag
 
     def testFactoryOutput(self, agent, provider_name):
-        """ 
+        """
         Test the output from the ProviderFactory class
         """
 
